@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useRef, useState, ReactNode } from 'react';
 import type { Map as LeafletMap } from 'leaflet';
 
