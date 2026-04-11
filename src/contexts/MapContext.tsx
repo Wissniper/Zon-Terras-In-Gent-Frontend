@@ -1,9 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useRef, useState, ReactNode } from 'react';
+import { createContext, useContext, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { Map as LeafletMap } from 'leaflet';
 
 interface MapContextValue {
-  mapRef: React.MutableRefObject<LeafletMap | null>;
+  mapRef: React.RefObject<LeafletMap | null>;
   center: [number, number]; // [lat, lng]
   zoom: number;
   setCenter: (center: [number, number]) => void;
