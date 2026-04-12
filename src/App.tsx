@@ -6,12 +6,14 @@ import RestaurantDetailPage from './pages/RestaurantDetailPage';
 import EventDetailPage from './pages/EventDetailPage';
 import SearchPage from './pages/SearchPage';
 
+import { WeatherWidget } from './components//WeatherWidget.tsx';
+
 export default function App() {
   return (
     <BrowserRouter>
       <div className="flex flex-col min-h-screen">
         <NavBar />
-        <main className="flex-1">
+        <main className="flex-1 relative"> {}
           <Routes>
             <Route path="/" element={<MapPage />} />
             <Route path="/terrasen/:id" element={<TerrasDetailPage />} />
@@ -19,6 +21,9 @@ export default function App() {
             <Route path="/events/:id" element={<EventDetailPage />} />
             <Route path="/search" element={<SearchPage />} />
           </Routes>
+          
+          {}
+          <WeatherWidget /> 
         </main>
       </div>
     </BrowserRouter>
