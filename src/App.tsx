@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar';
+import OfflineIndicator from './components/OfflineIndicator';
 import MapPage from './pages/MapPage';
 import TerrasDetailPage from './pages/TerrasDetailPage';
 import RestaurantDetailPage from './pages/RestaurantDetailPage';
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="/search" element={<SearchPage />} />
           </Routes>
         </main>
+        <OfflineIndicator />
       </div>
     </BrowserRouter>
   );
