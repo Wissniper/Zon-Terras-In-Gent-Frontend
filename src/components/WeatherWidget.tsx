@@ -10,7 +10,7 @@ export const WeatherWidget = () => {
 
   useEffect(() => {
     //data ophalen
-    fetch('/api/sun/51.05/3.72/now')
+    fetch('/api/weather/51.05/3.72')
       .then(res => res.json())
       .then(data => setWeather(data));
 
@@ -39,7 +39,7 @@ export const WeatherWidget = () => {
       <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
         <div className="flex flex-col">
           <span className="text-xs text-gray-500">UV Index</span>
-          <span className="font-semibold text-lg"> {weather.intensity?.toFixed(1) || '0.0'}</span>
+          <span className="font-semibold text-lg"> {weather.uvIndex?.toFixed(1) || '0.0'}</span>
         </div>
         <div className="flex flex-col">
           <span className="text-xs text-gray-500">Temp</span>
@@ -47,7 +47,7 @@ export const WeatherWidget = () => {
         </div>
         <div className="flex flex-col">
           <span className="text-xs text-gray-500">Wind</span>
-          <span className="font-semibold text-sm"> {weather.windSpeed || '0'} km/h</span>
+          <span className="font-semibold text-sm"> {weather.windspeed || '0'} km/h</span>
         </div>
         <div className="flex flex-col">
           <span className="text-xs text-gray-500">Wolken</span>
