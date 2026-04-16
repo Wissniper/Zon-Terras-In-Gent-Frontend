@@ -9,20 +9,36 @@ export const WeatherWidget = () => {
   const [pulse, setPulse] = useState(false);
 
   useEffect(() => {
-    //data ophalen
-    fetch('/api/weather/51.05/3.72')
-      .then(res => res.json())
-      .then(data => setWeather(data));
-
-    //Luisteren naar de backend cron-job
-    socket.on('weather_update', (newData) => {
-      setWeather(newData);
-      setPulse(true);
-      setTimeout(() => setPulse(false), 2000); //Animatie van 2 seconden
+  // Initiële data ophalen
+  fetch('http://localhost:3000/api/weather/51.05/3.72')
+    .then(res => res.json())
+    .then(data => {
+    
+      if (data.weather) {
+        setWeather(data.weather);
+      } else {
+        setWeather(data); //Fallback
+      }
     });
 
-    return () => { socket.off('weather_update'); };
-  }, []);
+  // Socket luisteren
+socket.on('weather_update', (data) => {
+  console.log("Socket update ontvangen!", data);
+  
+  fetch('http://localhost:3000/api/weather/51.05/3.72')
+    .then(res => res.json())
+    .then(json => {
+      if (json.weather) {
+        setWeather(json.weather); //Update de weer-data
+        setPulse(true); //Start de animatie
+        setTimeout(() => setPulse(false), 2000); // Stop de animatie
+      }
+    })
+    .catch(err => console.error("Fetch na socket faalt:", err));
+});
+
+  return () => { socket.off('weather_update'); };
+}, []);
 
   if (!weather) return null;
 
