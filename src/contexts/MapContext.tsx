@@ -1,10 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useRef, useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Map as LeafletMap } from 'leaflet';
 
 interface MapContextValue {
-  mapRef: React.RefObject<LeafletMap | null>;
   center: [number, number]; // [lat, lng]
   zoom: number;
   setCenter: (center: [number, number]) => void;
@@ -13,17 +11,15 @@ interface MapContextValue {
 
 const MapContext = createContext<MapContextValue | null>(null);
 
-// Default center: Ghent, Belgium
 const DEFAULT_CENTER: [number, number] = [51.0543, 3.7174];
 const DEFAULT_ZOOM = 14;
 
 export function MapProvider({ children }: { children: ReactNode }) {
-  const mapRef = useRef<LeafletMap | null>(null);
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
 
   return (
-    <MapContext.Provider value={{ mapRef, center, setCenter, zoom, setZoom }}>
+    <MapContext.Provider value={{ center, setCenter, zoom, setZoom }}>
       {children}
     </MapContext.Provider>
   );
