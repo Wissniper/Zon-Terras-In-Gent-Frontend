@@ -15,10 +15,10 @@ export default function OfflineIndicator({ queryError = false }: OfflineIndicato
       role="status"
       aria-live="polite"
       className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50
-                 bg-red-600 text-white text-sm font-medium
-                 px-4 py-2 rounded-full shadow-lg"
+                 bg-surface text-text-1 text-xs font-medium shadow-float
+                 px-4 py-2 rounded-full border border-surface-3"
     >
-      {!isConnected ? 'Live updates unavailable — no connection' : 'Failed to load data'}
+      {!isConnected ? 'Live updates unavailable' : 'Failed to load data'}
     </div>
   );
 }
