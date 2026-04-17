@@ -5,7 +5,8 @@ import { io } from 'socket.io-client';
 const socket = io('http://localhost:3000');
 
 export const WeatherWidget = () => {
-  const [weather, setWeather] = useState<any>(null);
+  type WeatherData = { uvIndex?: number; temperature?: number; windspeed?: number; cloudCover?: number };
+  const [weather, setWeather] = useState<WeatherData | null>(null);
   const [pulse, setPulse] = useState(false);
 
   useEffect(() => {
