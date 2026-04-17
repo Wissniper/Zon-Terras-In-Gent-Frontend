@@ -1,76 +1,39 @@
-import { useEffect, useState } from 'react';
-import { io } from 'socket.io-client';
+import { useWeatherData } from '../hooks/useWeatherData';
 
-//Verbind met API
-const socket = io('http://localhost:3000');
+export function WeatherWidget() {
+  const { data: weather, isError } = useWeatherData();
 
-export const WeatherWidget = () => {
-  type WeatherData = { uvIndex?: number; temperature?: number; windspeed?: number; cloudCover?: number };
-  const [weather, setWeather] = useState<WeatherData | null>(null);
-  const [pulse, setPulse] = useState(false);
+  if (isError || !weather) return null;
 
-  useEffect(() => {
-  // Initiële data ophalen
-  fetch('http://localhost:3000/api/weather/51.05/3.72')
-    .then(res => res.json())
-    .then(data => {
-    
-      if (data.weather) {
-        setWeather(data.weather);
-      } else {
-        setWeather(data); //Fallback
-      }
-    });
-
-  // Socket luisteren
-socket.on('weather_update', (data) => {
-  console.log("Socket update ontvangen!", data);
-  
-  fetch('http://localhost:3000/api/weather/51.05/3.72')
-    .then(res => res.json())
-    .then(json => {
-      if (json.weather) {
-        setWeather(json.weather); //Update de weer-data
-        setPulse(true); //Start de animatie
-        setTimeout(() => setPulse(false), 2000); // Stop de animatie
-      }
-    })
-    .catch(err => console.error("Fetch na socket faalt:", err));
-});
-
-  return () => { socket.off('weather_update'); };
-}, []);
-
-  if (!weather) return null;
+  const cloudLabel =
+    weather.cloudCover < 20 ? 'Clear' :
+    weather.cloudCover < 50 ? 'Partly cloudy' :
+    weather.cloudCover < 80 ? 'Mostly cloudy' : 'Overcast';
 
   return (
-    <div className={`fixed bottom-6 right-6 z-50 w-64 p-4 rounded-2xl shadow-2xl border transition-all duration-500 ${
-      pulse ? 'bg-yellow-100 border-yellow-400 scale-105' : 'bg-white/90 backdrop-blur-sm border-gray-200'
-    }`}>
-      <div className="flex items-center justify-between mb-2">
-        <h4 className="font-bold text-gray-800">Live Weer Gent</h4>
-        {}
-        <span className={`h-2 w-2 rounded-full bg-green-500 ${pulse ? 'animate-ping' : ''}`}></span>
+    <div className="bg-surface rounded-2xl shadow-soft p-4 w-52">
+      <p className="text-xs font-bold uppercase tracking-label text-text-2 mb-3">
+        Atmosphere
+      </p>
+
+      <div className="flex items-end gap-1 mb-1">
+        <span className="font-light text-text-1" style={{ fontSize: '3rem', lineHeight: 1, letterSpacing: '-0.02em' }}>
+          {Math.round(weather.temperature)}
+        </span>
+        <span className="text-xl text-text-2 mb-2">°C</span>
       </div>
-      
-      <div className="grid grid-cols-2 gap-2 text-sm text-gray-700">
-        <div className="flex flex-col">
-          <span className="text-xs text-gray-500">UV Index</span>
-          <span className="font-semibold text-lg"> {weather.uvIndex?.toFixed(1) || '0.0'}</span>
+      <p className="text-xs text-text-2 mb-4">{cloudLabel}</p>
+
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-text-3">Wind</span>
+          <span className="text-xs font-semibold text-text-1 tabular-nums">{Math.round(weather.windspeed)} km/h</span>
         </div>
-        <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Temp</span>
-          <span className="font-semibold text-lg"> {weather.temperature || '15'}°C</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Wind</span>
-          <span className="font-semibold text-sm"> {weather.windspeed || '0'} km/h</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-xs text-gray-500">Wolken</span>
-          <span className="font-semibold text-sm"> {weather.cloudCover || '0'}%</span>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-text-3">Cloud cover</span>
+          <span className="text-xs font-semibold text-text-1 tabular-nums">{Math.round(weather.cloudCover)}%</span>
         </div>
       </div>
     </div>
   );
-};
+}
