@@ -5,88 +5,118 @@
 
 ### Slide 1 – Titel
 
-Welkom. Dit is onze tweede milestone-presentatie voor het Webdevelopment-project. Sinds de eerste presentatie in maart hebben we het volledige testlandschap opgezet, semantic web geïntegreerd, data seeding scripts geschreven, en een volledig werkende React-frontend gebouwd — van nul. Vandaag laten we zien wat er concreet veranderd is.
+Welkom. Dit is onze tweede milestone-presentatie voor het Webdevelopment-project. Sinds de eerste presentatie in maart hebben we het volledige testlandschap opgezet, semantic web geïntegreerd, data seeding scripts geschreven, en een volledig werkende React-frontend gebouwd. Vandaag laten we zien wat er concreet veranderd is en waarom we bepaalde architecturale keuzes hebben gemaakt om van een proof-of-concept naar een robuuste applicatie te gaan.
 
 ---
 
 ### Slide 2 – Agenda
 
-We overlopen acht onderwerpen. We starten met een terugblik op wat er al was na Milestone 1, geven daarna een kwantitatief overzicht van de voortgang, en duiken dan dieper in het backend- en frontend-werk. We sluiten af met integratie, uitdagingen en volgende stappen.
+We overlopen acht onderwerpen. We starten met een terugblik op Milestone 1, geven een kwantitatief overzicht van de voortgang, en duiken dan dieper in het backend- en frontend-werk. We besteden extra aandacht aan de 'waarom' achter onze keuzes voor RDF en de complexe 3D hosting strategie. We sluiten af met integratie-uitdagingen en de stappen naar de finale milestone.
 
 ---
 
 ### Slide 3 – Vertrekpunt na Milestone 1
 
-Links staan de zaken die we al hadden aan het einde van Milestone 1: een volledig functionele REST API met 33 endpoints, content negotiation, HATEOAS, Pug views, en een deployment op Oracle Cloud. Rechts staat wat de scope was voor Milestone 2 — alles wat ontbrak. Belangrijkste punt: de frontend was volledig leeg, enkel scaffold. Testdekking was nul procent.
+Links staan de zaken die we al hadden: een functionele REST API met HATEOAS en Pug views. Rechts staat de scope voor Milestone 2. Het belangrijkste pijnpunt was dat de frontend nog een lege shell was en we overgeleverd waren aan handmatige tests door een gebrek aan testdekking. We moesten de architectuur professionaliseren voor we konden opschalen.
 
 ---
 
 ### Slide 4 – Voortgang in Cijfers
 
-Zes kerncijfers. 96 backend-commits en 30 frontend-commits over 36 dagen. We zijn van nul naar 229 test cases gegaan, verdeeld over 27 testbestanden. Vijf volledig werkende frontend-pagina's gebouwd. En meer dan tien pull requests gemerged, met elk een duidelijk gedefinieerde scope.
+Zes kerncijfers die de intensiteit van de afgelopen 36 dagen tonen: 126 commits totaal, 229 test cases verdeeld over 27 bestanden, en vijf volledig werkende frontend-pagina's. Elk cijfer staat voor een afgeronde user story of bugfix die de stabiliteit van het systeem heeft verhoogd.
 
 ---
 
-### Slide 5 – Backend: Test Suite
+### Slide 5 – Backend: Test Suite & Betrouwbaarheid
 
-We hadden aan het begin van Milestone 2 nog geen enkele test. We hebben dat systematisch aangepakt: eerst de modellen getest, dan de controllers, daarna de endpoints als integratietests, en uiteindelijk ook de geospatiale queries, data fetchers en de RDF-exporter. Elke test draait tegen een in-memory MongoDB, zodat er geen externe database nodig is. Een technisch detail: we moesten `setMaxListeners` verhogen omdat de DB-indexering asynchroon is en tests anders te vroeg zouden starten.
+Aan het begin van Milestone 2 hadden we geen tests. We hebben dit aangepakt met een "in-memory MongoDB" strategie. 
+
+**Waarom?** Omdat we willen dat onze CI/CD pipeline (GitHub Actions) tests kan draaien zonder afhankelijk te zijn van een externe database die offline kan zijn of vervuilde data bevat. Dit garandeert dat elke commit de bestaande logica niet breekt en dat de database-status voor elke testrun identiek is.
+
+```typescript
+// database.helper.ts
+export const connect = async () => {
+  mongod = await MongoMemoryServer.create();
+  const uri = mongod.getUri();
+  await mongoose.connect(uri);
+  await mongoose.syncIndexes();
+};
+// Elke test draait tegen een verse, geïsoleerde database-instantie
+```
 
 ---
 
 ### Slide 6 – Backend: Semantic Web & RDF
 
-Dit was een van de grotere technische uitbreidingen. We zijn overgestapt van MongoDB `_id` naar een `uuid` als primaire identifier — dat geeft stabiele IRIs die onafhankelijk zijn van de database. Alle endpoints kunnen nu `application/ld+json` teruggeven met een `@context` op basis van Schema.org. We hebben ook een SPARQL semantic search endpoint toegevoegd, en een exportscript dat de volledige database als N-Triples wegschrijft. De MongoDB en de triplestore worden gesynchroniseerd via Mongoose post-save hooks.
+Dit was de grootste technische uitbreiding. We zijn overgestapt naar Linked Data. 
+
+**Waarom gebruiken we RDF triples?** 
+1. **Interoperabiliteit:** Onze data is nu niet langer een "blinde" JSON-blob die alleen wij begrijpen. Door triples te gebruiken, kan elke machine de relaties tussen entiteiten begrijpen via wereldwijde standaarden.
+2. **Betekenis (Semantiek):** Velden zijn gekoppeld aan unieke URIs (zoals `zt:sunIntensity`). Hierdoor is er geen verwarring mogelijk over wat data precies representeert.
+
+```typescript
+// rdfExporter.ts
+export function docToTriples(entityType: string, doc: any): string[] {
+    const baseUri = `${BASE_IRI}/${plural}/${doc.uuid}`;
+    return [
+        `<${baseUri}> a <http://api.sun-seeker.be/vocab#Terras> .`,
+        `<${baseUri}> <https://schema.org/name> "${doc.name}" .`,
+        `<${baseUri}> <http://api.sun-seeker.be/vocab#sunIntensity> "${doc.intensity}"^^xsd:integer .`
+    ];
+}
+```
 
 ---
 
-### Slide 7 – Semantic Web: Stabiele Identifiers (UUID)
+### Slide 7 – Semantic Web: Waarom stabiele UUIDs?
 
-De eerste stap naar een volwaardig Semantic Web was de migratie van database-afhankelijke MongoDB `_id`'s naar stabiele, universele identifiers. Door `uuid` te gebruiken, blijven onze IRIs (`http://api.sun-seeker.be/terras/[uuid]`) consistent, zelfs als we data zouden migreren naar een andere database of triplestore.
+We zijn overgestapt van MongoDB `_id` naar `uuid` als primaire identifier.
+
+**Waarom?** MongoDB IDs zijn database-specifiek. Als we morgen overstappen naar een andere database, veranderen alle links naar onze terrassen. Een UUID is universeel en stabiel. Dit is essentieel voor IRIs: een link naar een terras op `api.sun-seeker.be` moet over 10 jaar nog steeds naar hetzelfde terras wijzen, ongeacht de onderliggende techniek.
 
 ```typescript
 // terrasModel.ts
 const TerrasSchema = new Schema({
   uuid: { 
     type: String, 
-    default: uuidv4, 
+    default: uuidv4, // Genereer stabiele identifier onafhankelijk van MongoDB
     required: true, 
     unique: true, 
     index: true 
   },
-  // ...
 });
 ```
-Dit is cruciaal voor Linked Data: een IRI moet een unieke, persistente verwijzing zijn naar een resource.
 
 ---
 
-### Slide 8 – Semantic Web: JSON-LD & Schema.org
+### Slide 8 – Semantic Web: JSON-LD & Context
 
-Content negotiation stelt clients in staat om data op te vragen in het formaat dat zij verkiezen. Naast JSON en HTML ondersteunen we nu `application/ld+json`. We gebruiken een centraal `@context` bestand dat onze interne databasevelden mapt naar wereldwijde standaarden zoals Schema.org en Dublin Core.
+Clients kunnen nu `application/ld+json` opvragen. 
 
-```json
-{
-  "@context": {
-    "schema": "https://schema.org/",
-    "zt": "http://api.sun-seeker.be/vocab#",
-    "name": "schema:name",
-    "intensity": "zt:sunIntensity"
-  },
-  "@type": "zt:Terras",
-  "name": "Korenmarkt Terras",
-  "intensity": 85
-}
-```
-Hierdoor begrijpen zoekmachines en andere Linked Data applicaties direct wat een "intensity" of "name" betekent in onze context.
-
----
-
-### Slide 9 – Semantic Web: Semantic Search Endpoint
-
-We hebben een specifiek search endpoint `/api/search/semantic` gebouwd dat complexe, domein-overschrijdende vragen beantwoordt. In plaats van simpele tekst-zoekopdrachten, kunnen we nu queries uitvoeren zoals: "Welke events vinden plaats bij een Italiaans restaurant met een zonintensiteit van meer dan 80?".
+**Waarom JSON-LD?** Het is de brug tussen de klassieke webontwikkelaar en het Semantic Web. Het mapt onze interne velden naar Schema.org en Dublin Core. Zo begrijpt Google bijvoorbeeld direct dat onze "name" de `schema:name` is van een restaurant, wat helpt bij SEO en automatische data-integratie.
 
 ```typescript
-// searchController.ts (Aggregation Pipeline)
+// jsonld.ts
+const BASE_CONTEXT = {
+  schema: "https://schema.org/",
+  zt: "http://api.sun-seeker.be/vocab#",
+  name: "schema:name",
+  intensity: "zt:sunIntensity",
+  location: "geojson:geometry"
+};
+// Mapt "intensity" naar een wereldwijd begrepen concept (zt:sunIntensity)
+```
+
+---
+
+### Slide 9 – Semantic Web: Semantic Search Rationale
+
+Onze `/api/search/semantic` endpoint gaat verder dan simpele tekst-zoekopdrachten.
+
+**Waarom semantisch zoeken?** In een klassieke API moet je meerdere calls doen om relaties te leggen. Onze semantische laag begrijpt de *relatie* tussen verschillende entiteiten. We simuleren SPARQL-kracht binnen MongoDB om complexe vragen ("Zonnig Italiaans terras") in één enkele query te beantwoorden.
+
+```typescript
+// searchController.ts
 pipeline.push({
   $lookup: {
     from: "restaurants",
@@ -96,200 +126,226 @@ pipeline.push({
   }
 });
 pipeline.push({ 
-  $match: { 
-    "venue.cuisine": "Italian", 
-    "venue.intensity": { $gt: 80 } 
-  } 
+  $match: { "venue.cuisine": "Italian", "venue.intensity": { $gt: 80 } } 
 });
 ```
-Dit simuleert de kracht van SPARQL binnen onze MongoDB omgeving, waarbij relaties tussen verschillende entiteiten (Events, Terrassen, Restaurants) semantisch worden benut.
 
 ---
 
-### Slide 10 – Semantic Web: RDF Export (N-Triples)
+### Slide 10 – Semantic Web: RDF Export & Synchronisatie
 
-Om onze data beschikbaar te stellen voor externe triplestores of data-analisten, hebben we een exportscript geschreven dat de volledige MongoDB database omzet naar het N-Triples formaat. Dit script mapt elke record naar een set van subject-predicate-object triples.
+We exporteren alles naar N-Triples en synchroniseren dit via Mongoose hooks.
 
-```typescript
-// rdfExporter.ts
-export function docToTriples(entityType: string, doc: any): string[] {
-    const baseUri = `${BASE_IRI}/${plural}/${doc.uuid}`;
-    const triples = [
-        `<${baseUri}> <https://schema.org/name> "${doc.name}" .`,
-        `<${baseUri}> <http://api.sun-seeker.be/vocab#sunIntensity> "${doc.intensity}"^^xsd:integer .`
-    ];
-    return triples;
-}
-```
-Dit maakt de data "interoperabel": het kan direct worden ingelezen in tools als Apache Jena of GraphDB voor geavanceerde reasoning.
-
----
-
-### Slide 11 – Semantic Web: Real-time Synchronisatie
-
-Data in een web-omgeving is dynamisch. Om de integriteit tussen onze MongoDB (voor snelle reads/writes) en de triplestore (voor semantiek) te garanderen, gebruiken we Mongoose middleware hooks. Elke keer dat een terras of restaurant wordt opgeslagen of geüpdatet, worden de triples automatisch opnieuw gegenereerd en gesynchroniseerd.
+**Waarom deze extra laag?** Het maakt onze data "future-proof". Door triples real-time bij te houden, kunnen we op elk moment een triplestore (zoals Apache Jena) inpluggen voor geavanceerde reasoning, zonder onze hoofd-API te belasten of te herbouwen.
 
 ```typescript
 // terrasModel.ts
 TerrasSchema.post('save', async function(doc) {
   const triples = docToTriples('terras', doc.toObject());
-  await syncToTriplestore(triples);
+  await syncToTriplestore(triples); // Gegarandeerde real-time RDF sync
 });
 ```
-Dit zorgt voor een "single source of truth" waarbij de semantische laag altijd een actuele reflectie is van de operationele database.
 
 ---
 
-### Slide 12 – Backend: Data Seeding, 3D & API
+### Slide 11 – Backend: 3D Gebouwdata & Hosting
 
-Drie seeding scripts: voor terrassen en restaurants via Overpass API, voor evenementen via Visit Gent. Die scripts zijn uitvoerbaar via npm-commando's en vullen de database met actuele Gentse data.
+We hebben 3D data van Stad Gent geïntegreerd voor toekomstige schaduwberekeningen. 
 
-Daarnaast hebben we een nieuw model en endpoints toegevoegd voor 3D gebouwdata van Stad Gent. De tiles worden gedownload via een Lambert 72-raster, opgeslagen met een status lifecycle, en later bruikbaar voor schaduwberekeningen.
+**Waarom serves we deze files via onze eigen Oracle backend en niet via Vercel?**
+Vercel heeft een 100MB deployment limiet. De Gent 3D dataset bestaat uit honderden ZIP-bestanden — in totaal gigabytes aan data. Onze Oracle server heeft de diskruimte en streamt deze files direct over HTTPS. Dit voorkomt dat we binaire data in onze Git repo moeten committen.
 
-Aan API-kant: sun cache van 15 naar 60 minuten verhoogd om rate limits te vermijden, Gent-coördinaten worden nu gevalideerd via guardrails, en de API is in read-only modus gezet voor de frontend.
-
----
-
-### Slide 13 – Sectie-divider: Frontend
-
-We stappen over naar het frontend-werk. Dit was de grootste nieuwe scope van Milestone 2: een volledige React-applicatie bouwen op basis van de bestaande backend-API.
-
----
-
-### Slide 14 – Frontend: Stack & Architectuur
-
-De frontend gebruikt React 19 met strikte TypeScript, Vite als build tool en dev server, Tailwind CSS voor styling, en React Router voor navigatie. Data wordt beheerd via TanStack React Query met Axios. Real-time updates lopen via Socket.io. De kaart is gebouwd met Leaflet en react-leaflet.
-
-De provider-boom toont hoe de contexts genest zijn: van QueryClientProvider aan de buitenkant tot MapProvider en App binnenin. Elke provider heeft een specifieke verantwoordelijkheid en is aanroepbaar via een custom hook.
+```typescript
+// gent3dController.ts
+export const getTileFile = async (req: Request, res: Response) => {
+  const tile = await Gent3dTile.findOne({ vaknummer: req.params.vaknummer });
+  if (tile.downloadStatus === "done" && tile.localPath) {
+    return res.download(tile.localPath); // Stream direct van Oracle storage
+  }
+};
+```
 
 ---
 
-### Slide 15 – Frontend: Interactieve Kaart & Zon-Timeline
+### Slide 12 – 3D Architectuur: Waarom Cloudflare R2?
 
-De MapPage is het hart van de applicatie. De belangrijkste feature is de 48-uur zon-timeline slider: de gebruiker kan scrollen van vandaag tot morgen, en de app berekent de zonintensiteit per uur. De kleurgradiënt past zich aan op basis van bewolkingsdata uit de weer-API — bij helder weer is de slider goud-amber, bij bewolkt wordt het grijzer.
+Voor browser-rendering moeten we DWG ZIPs omzetten naar GLTF.
 
-De collapsible sidebar aan de linkerkant bevat een WeatherCard met actuele weerdata, een lijst van de zonnigste terrassen, en navigatielinks. Op mobiel kan de sidebar worden opengeklapt via een hamburger-knop.
+**Waarom Cloudflare R2 als CDN?**
+In vergelijking met Supabase Storage biedt R2 een hogere gratis tier en — cruciaal — **geen egress fees**. Omdat 3D modellen groot zijn, zouden de kosten voor dataverkeer bij andere providers snel onhoudbaar worden. R2 is de meest schaalbare keuze voor zware binaire assets.
+
+```typescript
+// Conceptuele R2 architectuur
+const r2Url = `https://cdn.sun-seeker.be/tiles/${vaknummer}.gltf`;
+// Redirect naar R2 CDN om de backend server te ontlasten
+```
 
 ---
 
-### Slide 16 – Frontend: Pagina's & Zoekfunctie
+### Slide 13 – 3D Architectuur: Lazy On-demand Conversion
 
-Alle vijf pagina's zijn volledig geïmplementeerd. De SearchPage heeft drie tabs voor terrassen, restaurants en evenementen, met paginering van 20 items per pagina en een intensiteitsfilter. De detailpagina's tonen respectievelijk zondata met een OSM-kaartinbed, restaurantinfo met openingsuren, en evenementdetails met een link naar het bijhorende terras of restaurant.
+We converteren files pas wanneer ze daadwerkelijk door een gebruiker worden opgevraagd.
 
-UUID-extractie uit het Hydra `@id`-veld is een technisch detail dat we afhandelen in de services — de gebruiker ziet nooit een raw ID.
+**Waarom een 'lazy' pipeline?**
+Het zou inefficiënt zijn om alle 400 tegels vooraf te converteren. Dat kost onnodig veel CPU-tijd en opslagruimte. Door alleen op aanvraag te converteren en de URL daarna te cachen in MongoDB, groeien we organisch mee met het gebruik van de app.
+
+```typescript
+// gent3dTileModel.ts
+export interface Gent3dTileDocument extends Document {
+  vaknummer: string;
+  downloadStatus: "pending" | "done" | "error";
+  gltfUrl?: string; // Cache de R2 URL na de eerste on-demand conversie
+}
+```
 
 ---
 
-### Slide 17 – Integratie & Architectuur
+### Slide 14 – Sectie-divider: Frontend
 
-De architectuur is eenvoudig: de browser praat via de Vite-proxy met de backend. In productie draait de frontend als een statische build, rechtstreeks naar NGINX. Socket.io maakt een directe verbinding naar de API — het bypasses de Vite-proxy opzettelijk, omdat proxied WebSocket-connecties extra configuratie vereisen.
+We stappen over naar het frontend-werk. De app is gebouwd met React 19, Vite en Tailwind CSS. Hoewel een interactieve kaart met Leaflet gepland staat voor Milestone 3, ligt de focus nu op de integratie van real-time data en 3D tiles.
 
-CORS is op twee plaatsen geconfigureerd: in de Express REST-middleware én in de socket.io-opties. Beide accepteren `localhost:5173` en de deployed origin.
+---
+
+### Slide 15 – Frontend: Architectuur & State
+
+De frontend gebruikt TanStack React Query voor data-fetching. 
+
+**Waarom?** Het handelt caching, loading states en retries automatisch af. Voor real-time updates gebruiken we Socket.io, zodat de gebruiker direct ziet wanneer de zonintensiteit of het weer verandert, zonder handmatig de pagina te verversen.
+
+```typescript
+// useWeatherData.ts (Frontend Hook)
+socket.on('weather_update', () => {
+  queryClient.invalidateQueries({ queryKey: ['weather'] });
+});
+// Reageer direct op gepushte data van de backend
+```
+
+---
+
+### Slide 16 – Frontend: Pagina's & Gebruikerservaring
+
+Vijf pagina's zijn volledig geïmplementeerd. We extraheren UUIDs uit de Hydra `@id` velden van de API om naar detailpagina's te navigeren.
+
+**Waarom?** Om de URL's clean te houden terwijl we toch de volledige semantische link naar de backend behouden. De gebruiker ziet een simpele URL, maar de app "begrijpt" de semantische context van de resource.
+
+```typescript
+// services/api.ts
+const extractUuid = (id: string) => id.split('/').pop();
+// Van "/api/terrasen/123-abc" naar "123-abc" voor React Router
+```
+
+---
+
+### Slide 17 – Integratie: De Vite Proxy & Sockets
+
+Onze architectuur gebruikt een Vite proxy in development, maar we praten direct met de backend voor Sockets.
+
+**Waarom bypassen we de proxy voor Socket.io?**
+Proxying van WebSockets voegt onnodige latency toe en vereist complexe configuratie. Door een directe verbinding naar `api.sun-seeker.be` te maken, garanderen we de snelste real-time ervaring.
+
+```typescript
+// services/socket.ts
+const socket = io('https://api.sun-seeker.be', {
+  transports: ['websocket'] // Forceer directe WebSocket verbinding voor snelheid
+});
+```
 
 ---
 
 ### Slide 18 – Uitdagingen & Oplossingen
 
-Vier concrete problemen. Ten eerste de stagnant intensity-bug: gecachede waarden werden nooit herberekend, ook niet na de TTL. Opgelost door de cache-logica te herschrijven met correcte TTL-controle.
-
-Ten tweede de RDF-inconsistentie: triplestore en MongoDB raakten uit sync. Opgelost door alles te centraliseren in Mongoose hooks.
-
-Ten derde CORS en socket.io typing: die conflicteerden en gaven TypeScript-fouten. Opgelost door expliciete configuratie voor beide te schrijven.
-
-Ten vierde de UUID-migratie: we zijn halverwege overgestapt van `_id` naar `uuid`, wat refactoring vereiste in routes, tests en de RDF-exporter. Een les voor de volgende keer: dit soort beslissingen neem je best aan het begin.
+We hebben vier grote hobbels genomen: de cache-bug, RDF-inconsistentie, CORS-problemen en de UUID-migratie. Elk van deze problemen heeft ons gedwongen onze architectuur te heroverwegen en fundamenteel te verbeteren.
 
 ---
 
 ### Slide 19 – Uitdaging: De 'Stagnant Intensity' Bug
 
-Een van de meest frustrerende bugs was de "stagnant intensity". Zonintensiteit werd gecachet om de API te ontlasten, maar door een fout in de TTL-logica (Time To Live) werden waarden nooit als verouderd gemarkeerd. Gebruikers zagen zon-data van uren geleden.
+Zonintensiteit werd gecachet, maar door een fout in de TTL-logica werden waarden nooit ververst.
+
+**Waarom was dit kritiek?** De kernbelofte van onze app is "real-time zon". Als de data stilstaat, verliest de app zijn nut. We hebben dit opgelost door een strikte 15-minuten vergelijking met de `updatedAt` timestamp te forceren.
 
 ```typescript
-// sunDataController.ts - De fix
-const CACHE_MAX_AGE_MS = 15 * 60 * 1000; // 15 min
-const isStale = !cached || 
-  (Date.now() - new Date(cached.updatedAt).getTime()) > CACHE_MAX_AGE_MS;
-
-if (!isStale) return cached; // Alleen retourneren als echt vers
+// sunDataController.ts (Backend Fix)
+const isStale = (Date.now() - new Date(cached.updatedAt).getTime()) > 15 * 60 * 1000;
+if (isStale) {
+  // Recalculate sun position and intensity
+}
 ```
-Door expliciet de `updatedAt` timestamp te vergelijken met een strikte 15-minuten limiet, forceert de API nu een herberekening zodra de data over datum is.
 
 ---
 
 ### Slide 20 – Uitdaging: RDF Inconsistentie
 
-Omdat we data in zowel MongoDB (operationeel) als een .nt-bestand (semantisch) opslaan, ontstonden er synchronisatieproblemen. Updates in de database werden niet altijd weerspiegeld in de triples, waardoor SPARQL-zoekopdrachten verouderde resultaten gaven.
+MongoDB en de RDF-triples raakten soms uit sync bij updates.
+
+**Waarom centralisatie in hooks?** Eerst deden we de synchronisatie in de controllers, maar dat was foutgevoelig. Door het naar Mongoose `post-save` hooks te verplaatsen, is het technisch onmogelijk om de database te wijzigen zonder dat de semantische laag mee verandert.
 
 ```typescript
-// De oplossing: Centralisatie in Mongoose Hooks
+// terrasModel.ts
 TerrasSchema.post('findOneAndUpdate', async function(doc) {
-  if (doc) {
-    const triples = docToTriples('terras', doc.toObject());
-    await syncToTriplestore(triples);
-  }
+  // Deze hook garandeert sync, zelfs bij bulk updates
 });
 ```
-De oplossing was om de synchronisatie te verplaatsen naar Mongoose `post` hooks. Hierdoor is het onmogelijk om de database te wijzigen zonder dat de RDF-laag mee verandert.
 
 ---
 
-### Slide 21 – Uitdaging: CORS & Socket.io Typing
+### Slide 21 – Uitdaging: CORS & Socket.io
 
-De integratie van Socket.io in een TypeScript-project met strikte CORS-regels zorgde voor hardnekkige errors. Browser-beveiliging blokkeerde de WebSocket-handshake, en TypeScript herkende de gedeelde types tussen frontend en backend niet correct.
+Browser-beveiliging blokkeerde onze WebSocket-handshake.
+
+**Waarom dubbele configuratie?** Veel ontwikkelaars vergeten dat Socket.io zijn eigen CORS-configuratie heeft, los van de Express-middleware. We moesten expliciete origins definiëren voor beide lagen om een veilige handshake mogelijk te maken.
 
 ```typescript
-// app.ts - Expliciete CORS voor beide lagen
+// app.ts
 const io = new Server(server, {
-  cors: { origin: allowedOrigins }, // Socket.io CORS
+  cors: { origin: allowedOrigins }, // Essentieel voor WebSocket handshake
 });
-
-app.use(cors({ origin: allowedOrigins })); // Express CORS
+app.use(cors({ origin: allowedOrigins })); // Voor standaard REST endpoints
 ```
-We moesten CORS op twee niveaus configureren: in de Express-middleware én in de Socket.io constructor. Voor de typing hebben we een gedeelde `types/` folder opgezet die door beide repo's gebruikt wordt.
 
 ---
 
 ### Slide 22 – Uitdaging: De UUID-Migratie
 
-Halverwege de ontwikkeling besloten we over te stappen van MongoDB's `_id` naar `uuid`. Dit was een enorme operatie: alle routes, database-queries en meer dan 200 testcases moesten worden aangepast. 
+Halverwege de sprint overstappen op een ander ID-systeem was een enorme operatie.
+
+**Waarom nu en niet later?** Hoe langer we wachtten, hoe meer code we moesten herschrijven. De overstap naar UUID was essentieel voor de stabiliteit van onze Semantic Web IRIs. Het was een korte pijn voor een lange-termijn fundament.
 
 ```typescript
-// Impact op de API routes
-router.get("/:id", validateID, getTerrasById); 
-// validateID moest herschreven worden van 
-// ObjectId-check naar UUID-regex check.
+// Impact op middleware en validatie
+export const validateID = (req, res, next) => {
+  if (!uuidValidate(req.params.id)) return res.status(400); // Check voor UUID format
+  next();
+};
 ```
-De grootste les hier was dat fundamentele data-architectuur beslissingen (zoals identifier-strategie) best aan de start van de sprint genomen worden om "double work" te vermijden.
 
 ---
 
 ### Slide 23 – Lessons Learned: Mid-project Refactoring
 
-Deze uitdagingen leerden ons dat flexibiliteit in je code essentieel is, maar dat planning nog belangrijker is. Door systematisch gebruik te maken van git branches en pull requests konden we de UUID-migratie doorvoeren zonder de rest van het team te blokkeren.
-
-- **Vroeg testen:** De UUID-migratie was veel makkelijker omdat de tests ons direct vertelden wat er brak.
-- **Expliciete Config:** Vertrouw niet op defaults (zoals bij CORS), maar wees expliciet.
-- **Fail Fast:** De cache-bug werd pas laat ontdekt; sindsdien monitoren we cache-hits in de logs.
+De grootste les van Milestone 2: **Plan je data-architectuur op dag één.**
+We hebben geleerd dat tests je veiligheidsnet zijn bij grote refactors. Zonder onze 229 test cases was de UUID-migratie uitgelopen op een ramp; nu wisten we binnen seconden precies wat er brak.
 
 ---
 
 ### Slide 24 – Wat Nu Mogelijk Is
 
-Dit zijn de zes dingen die een gebruiker vandaag al kan doen. Meest markant: real-time zonnige terrassen zien, tijdreizen met de slider, en detailpagina's raadplegen met zondata. Alles draait op de live backend op `api.sun-seeker.be`. De frontend blijft draaien op `sun-seeker.be`.
+Vandaag kan een gebruiker: real-time zonnige terrassen vinden, tijdreizen met de zon-slider, en gedetailleerde zondata raadplegen. De backend draait live op Oracle Cloud, de frontend is klaar voor de 3D integratie.
 
 ---
 
-### Slide 25 – Lessons Learned & Volgende Stappen
+### Slide 25 – Milestone 3: De Volgende Stappen
 
-Zes lessen, waarbij de rode draad is: start vroeg met tests, plan grote refactors aan het begin, en configureer integratiepunten expliciet.
-
-Drie hoge prioriteiten voor Milestone 3: 3D schaduwberekeningen voor nauwkeurigere zonintensiteit, een Leaflet-kaart met markers in de MapPage, en de tweede frontend-app in een ander framework — wat een vereiste is van de WEBDEV2-opdracht.
+Drie hoge prioriteiten:
+1. **3D Rendering:** De DWG-naar-GLTF pipeline activeren en renderen via R2 en Three.js.
+2. **Interactieve Kaart:** Volledige implementatie van Leaflet markers.
+3. **Framework Diversiteit:** Het bouwen van een tweede frontend in Angular of Vue, zoals vereist voor de opdracht.
 
 ---
 
 ### Slide 26 – Afsluiting
 
-Samengevat: de backend is volledig getest met 229 test cases en ondersteunt nu Linked Data. De frontend is volledig geïmplementeerd met vijf pagina's en real-time data. We staan open voor vragen.
+Samengevat: we hebben een robuust, semantisch fundament gelegd. De backend is volledig getest en "linked data ready". De frontend is functioneel en schaalbaar. We hebben geleerd dat de "waarom" achter de techniek (zoals R2 of UUIDs) bepalend is voor de lange-termijn kwaliteit van het project. Vragen?
 
 ---
 
