@@ -5,6 +5,8 @@ import { CityTiles } from '../components/CityTiles';
 import { useSelectedTime } from '../contexts/TimeContext';
 import { useWeatherData } from '../hooks/useWeatherData';
 
+const TOTAL_MINUTES = 48 * 60 - 1;
+
 function skyIntensity(hour: number): number {
   if (hour < 5.5 || hour > 21.5) return 0;
   const peak = 13;
@@ -22,7 +24,6 @@ function SunTimeline() {
     return d.getTime();
   }, []);
 
-  const TOTAL_MINUTES = 48 * 60 - 1;
   const selected = new Date(selectedTime);
   const selectedMinutes = Math.round(
     Math.min(TOTAL_MINUTES, Math.max(0, (selected.getTime() - todayMidnight) / 60000))
@@ -147,7 +148,6 @@ function SunTimelineVertical() {
     return d.getTime();
   }, []);
 
-  const TOTAL_MINUTES = 48 * 60 - 1;
   const selected = new Date(selectedTime);
   const selectedMinutes = Math.round(
     Math.min(TOTAL_MINUTES, Math.max(0, (selected.getTime() - todayMidnight) / 60000))
