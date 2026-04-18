@@ -183,7 +183,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
         </NavLink>
         <NavLink
           to="/search"
-          className={({ isActive }) =>
+          className={() =>
             `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors`
           }
           style={({ isActive }) => ({
