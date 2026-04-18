@@ -3,18 +3,12 @@ import { Link } from 'react-router-dom';
 import { useSelectedTime } from '../contexts/TimeContext';
 import { useWeatherData } from '../hooks/useWeatherData';
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
-
-/** Approximate sun intensity (0-100) for a given hour of the day */
 function skyIntensity(hour: number): number {
   if (hour < 5.5 || hour > 21.5) return 0;
   const peak = 13;
   const halfSpan = 8;
   return Math.max(0, Math.round(100 - ((hour - peak) / halfSpan) ** 2 * 100));
 }
-
-
-// ─── Sun Timeline (drag slider, today + tomorrow, full width) ──────────────
 
 function SunTimeline() {
   const { selectedTime, setSelectedTime } = useSelectedTime();
@@ -26,8 +20,7 @@ function SunTimeline() {
     return d.getTime();
   }, []);
 
-  // Value = minutes from today midnight. Range: 0 → 2879 (2 full days, 15-min steps)
-  const TOTAL_MINUTES = 48 * 60 - 1; // 0..2879
+  const TOTAL_MINUTES = 48 * 60 - 1;
   const selected = new Date(selectedTime);
   const selectedMinutes = Math.round(
     Math.min(TOTAL_MINUTES, Math.max(0, (selected.getTime() - todayMidnight) / 60000))
@@ -39,7 +32,6 @@ function SunTimeline() {
     setSelectedTime(date.toISOString());
   }
 
-  // Build the track gradient representing day/night across the 48h span
   const cloudFactor = (100 - (weather?.cloudCover ?? 0)) / 100;
   const gradient = useMemo(() => {
     const stops: string[] = [];
@@ -47,18 +39,16 @@ function SunTimeline() {
       const h = (m / 60) % 24;
       const sky = skyIntensity(h) * cloudFactor;
       const pct = ((m / TOTAL_MINUTES) * 100).toFixed(1);
-      const color = sky > 60 ? '#FDE68A' : sky > 30 ? '#FEF3C7' : sky > 5 ? '#E8F4FF' : '#EDE9E3';
+      const color = sky > 60 ? '#F5AC32' : sky > 30 ? '#F5DFA0' : sky > 5 ? '#D4C4A8' : '#2A2018';
       stops.push(`${color} ${pct}%`);
     }
     return `linear-gradient(to right, ${stops.join(', ')})`;
   }, [cloudFactor]);
 
-  // Display labels for today and tomorrow day boundary
   const selectedDate = new Date(todayMidnight + selectedMinutes * 60000);
   const displayTime = selectedDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   const displayDay = selectedMinutes < 1440 ? 'Today' : 'Tomorrow';
 
-  // Hour marks to show on the track (every 3 hours)
   const marks = useMemo(() => {
     const result: { label: string; pct: number; isDayBoundary: boolean }[] = [];
     for (let m = 0; m <= TOTAL_MINUTES; m += 180) {
@@ -84,34 +74,32 @@ function SunTimeline() {
   const thumbPct = (selectedMinutes / TOTAL_MINUTES) * 100;
 
   return (
-    <div className="shrink-0 bg-surface border-t border-surface-3 px-6 py-4">
-      {/* Header row */}
+    <div className="shrink-0 px-6 py-4" style={{ background: '#150F08', borderTop: '1px solid #2E1E0A' }}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-bold uppercase tracking-label text-text-2">Sun Timeline</p>
+        <p className="text-xs font-medium uppercase tracking-label" style={{ color: '#7A6048', letterSpacing: '0.12em' }}>
+          Sun Timeline
+        </p>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-text-3">{displayDay}</span>
-          <span className="text-sm font-semibold text-text-1 tabular-nums">{displayTime}</span>
+          <span className="text-xs" style={{ color: '#7A6048' }}>{displayDay}</span>
+          <span className="text-sm font-semibold tabular-nums" style={{ color: '#E8C98A' }}>{displayTime}</span>
         </div>
       </div>
 
-      {/* Slider */}
       <div className="relative">
-        {/* Styled track */}
         <div
           className="absolute inset-y-0 left-0 right-0 my-auto rounded-full pointer-events-none"
-          style={{ height: 6, background: gradient, top: '50%', transform: 'translateY(-50%)' }}
+          style={{ height: 8, background: gradient, top: '50%', transform: 'translateY(-50%)', opacity: 0.7 }}
         />
-        {/* Progress fill (left of thumb) */}
         <div
           className="absolute my-auto rounded-l-full pointer-events-none"
           style={{
-            height: 6,
+            height: 8,
             top: '50%',
             transform: 'translateY(-50%)',
             left: 0,
             width: `${thumbPct}%`,
-            background: 'linear-gradient(to right, #FDE68A, #F5A623)',
-            opacity: 0.7,
+            background: 'linear-gradient(to right, #7A5010, #E5870A)',
+            opacity: 0.9,
           }}
         />
         <input
@@ -126,8 +114,7 @@ function SunTimeline() {
         />
       </div>
 
-      {/* Hour marks */}
-      <div className="relative mt-1.5" style={{ height: 16 }}>
+      <div className="relative mt-2" style={{ height: 16 }}>
         {marks.map((m) => (
           <span
             key={m.pct}
@@ -136,8 +123,8 @@ function SunTimeline() {
               left: `${m.pct}%`,
               transform: 'translateX(-50%)',
               fontSize: m.isDayBoundary ? 10 : 9,
-              fontWeight: m.isDayBoundary ? 700 : 400,
-              color: m.isDayBoundary ? '#5A5A6E' : '#9B9BAE',
+              fontWeight: m.isDayBoundary ? 600 : 400,
+              color: m.isDayBoundary ? '#9B8570' : '#5A4030',
               lineHeight: 1,
             }}
           >
@@ -148,8 +135,6 @@ function SunTimeline() {
     </div>
   );
 }
-
-// ─── Vertical Sun Timeline (mobile right panel) ────────────────────────────
 
 function SunTimelineVertical() {
   const { selectedTime, setSelectedTime } = useSelectedTime();
@@ -179,7 +164,7 @@ function SunTimelineVertical() {
       const h = (m / 60) % 24;
       const sky = skyIntensity(h) * cloudFactor;
       const pct = ((m / TOTAL_MINUTES) * 100).toFixed(1);
-      const color = sky > 60 ? '#FDE68A' : sky > 30 ? '#FEF3C7' : sky > 5 ? '#E8F4FF' : '#EDE9E3';
+      const color = sky > 60 ? '#F5AC32' : sky > 30 ? '#F5DFA0' : sky > 5 ? '#D4C4A8' : '#2A2018';
       stops.push(`${color} ${pct}%`);
     }
     return `linear-gradient(to bottom, ${stops.join(', ')})`;
@@ -210,19 +195,18 @@ function SunTimelineVertical() {
   const thumbPct = (selectedMinutes / TOTAL_MINUTES) * 100;
 
   return (
-    <div className="flex flex-1 min-h-0 px-2 py-3 gap-1 select-none">
-      {/* Track + rotated input */}
+    <div className="flex flex-1 min-h-0 px-2 py-3 gap-1 select-none" style={{ background: '#150F08' }}>
       <div className="relative flex justify-center w-7 flex-shrink-0 self-stretch">
         <div
           className="absolute rounded-full pointer-events-none"
-          style={{ width: 5, top: 0, bottom: 0, left: '50%', transform: 'translateX(-50%)', background: gradient }}
+          style={{ width: 6, top: 0, bottom: 0, left: '50%', transform: 'translateX(-50%)', background: gradient, opacity: 0.7 }}
         />
         <div
           className="absolute rounded-t-full pointer-events-none"
           style={{
-            width: 5, top: 0, height: `${thumbPct}%`,
+            width: 6, top: 0, height: `${thumbPct}%`,
             left: '50%', transform: 'translateX(-50%)',
-            background: 'linear-gradient(to bottom, #FDE68A, #F5A623)', opacity: 0.8,
+            background: 'linear-gradient(to bottom, #7A5010, #E5870A)', opacity: 0.9,
           }}
         />
         <input
@@ -243,7 +227,6 @@ function SunTimelineVertical() {
         />
       </div>
 
-      {/* Hour marks */}
       <div className="relative flex-1 self-stretch">
         {marks.map((m) => (
           <span
@@ -253,8 +236,8 @@ function SunTimelineVertical() {
               top: `${m.pct}%`,
               transform: 'translateY(-50%)',
               fontSize: m.isDayBoundary ? 9 : 8,
-              fontWeight: m.isDayBoundary ? 700 : 400,
-              color: m.isDayBoundary ? '#5A5A6E' : '#9B9BAE',
+              fontWeight: m.isDayBoundary ? 600 : 400,
+              color: m.isDayBoundary ? '#9B8570' : '#5A4030',
             }}
           >
             {m.label}
@@ -265,31 +248,29 @@ function SunTimelineVertical() {
   );
 }
 
-// ─── Legend ────────────────────────────────────────────────────────────────
-
 function Legend() {
   return (
-    <div className="bg-surface rounded-2xl shadow-soft p-4 w-44">
-      <p className="text-xs font-bold uppercase tracking-label text-text-2 mb-3">
+    <div className="rounded-2xl p-4 w-44" style={{ background: 'rgba(21,15,8,0.88)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}>
+      <p className="text-xs font-medium uppercase tracking-label mb-3" style={{ color: '#7A6048', letterSpacing: '0.12em' }}>
         Sun Intensity
       </p>
       <div
         className="h-2 rounded-full mb-2"
-        style={{ background: 'linear-gradient(to right, #E5E7EB, #FEF3C7, #F5A623)' }}
+        style={{ background: 'linear-gradient(to right, #3A2A18, #F5DFA0, #E5870A)' }}
       />
-      <div className="flex justify-between text-xs text-text-3 mb-4">
+      <div className="flex justify-between text-xs mb-4" style={{ color: '#7A6048' }}>
         <span>Shade</span>
         <span>Full sun</span>
       </div>
       <div className="space-y-2">
         {[
-          { color: '#F5A623', label: '70%+  Full sun' },
-          { color: '#FBBF24', label: '40%+  Partial' },
-          { color: '#D1D5DB', label: 'Below 40%' },
+          { color: '#E5870A', label: '70%+  Full sun' },
+          { color: '#F5AC32', label: '40%+  Partial' },
+          { color: '#5A4030', label: 'Below 40%' },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-            <span className="text-xs text-text-2">{label}</span>
+            <span className="text-xs" style={{ color: '#9B8570' }}>{label}</span>
           </div>
         ))}
       </div>
@@ -297,67 +278,70 @@ function Legend() {
   );
 }
 
-
-// ─── Main MapPage ───────────────────────────────────────────────────────────
-
 export default function MapPage() {
   const [timelineOpen, setTimelineOpen] = useState(false);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Map area */}
-      <div className="flex-1 relative overflow-hidden bg-surface-2">
+      <div className="flex-1 relative overflow-hidden" style={{ background: '#FAF5EC' }}>
 
-        {/* Subtle grid */}
+        {/* Warm atmospheric gradient */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            backgroundImage: 'linear-gradient(to right, rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,0.04) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
+            background: 'radial-gradient(ellipse 70% 60% at 60% 40%, rgba(245,172,50,0.10) 0%, rgba(229,135,10,0.05) 40%, transparent 70%)',
           }}
         />
 
-        {/* Placeholder center */}
+        {/* Subtle warm grid */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage: 'linear-gradient(to right, rgba(90,64,48,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(90,64,48,0.06) 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+          }}
+        />
+
+        {/* Coming soon placeholder */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center">
+          <div className="text-center fade-up">
             <div
-              className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-              style={{ background: 'rgba(245,166,35,0.12)' }}
+              className="w-20 h-20 rounded-3xl mx-auto mb-5 flex items-center justify-center sun-pulse"
+              style={{ background: 'rgba(229,135,10,0.10)', border: '1px solid rgba(229,135,10,0.22)' }}
             >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F5A623" strokeWidth="1.5">
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" strokeLinecap="round">
+                <circle cx="12" cy="12" r="4.5" stroke="#E5870A" strokeWidth="1.5" fill="rgba(229,135,10,0.12)" />
+                {[0,45,90,135,180,225,270,315].map((deg, i) => {
+                  const r = Math.PI * deg / 180;
+                  return <line key={i} x1={12 + Math.cos(r)*6.5} y1={12 + Math.sin(r)*6.5} x2={12 + Math.cos(r)*8.5} y2={12 + Math.sin(r)*8.5} stroke="#E5870A" strokeWidth="1.5" />;
+                })}
               </svg>
             </div>
-            <p className="text-base font-semibold text-text-1 mb-1">3D Map</p>
-            <p className="text-sm text-text-2 max-w-xs">
-              Interactive 3D map of Ghent coming soon.
+            <p className="font-display text-2xl font-semibold mb-2" style={{ color: '#1A1208' }}>
+              Interactive Map
+            </p>
+            <p className="text-sm mb-5 max-w-xs mx-auto" style={{ color: '#9B8570' }}>
+              3D map of Ghent's sunniest spots coming soon. Browse terraces below.
             </p>
             <Link
               to="/search"
-              className="pointer-events-auto inline-block mt-3 px-4 py-2 rounded-xl text-sm font-medium text-white"
-              style={{ background: '#F5A623' }}
+              className="pointer-events-auto inline-block px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:shadow-amber"
+              style={{ background: 'linear-gradient(135deg, #E5870A, #C4502A)' }}
             >
-              Browse terraces
+              Browse terraces →
             </Link>
           </div>
         </div>
 
-        {/* Floating — right (desktop) */}
-        <div className="absolute top-4 right-4 z-10 hidden md:block">
+        {/* Legend — desktop right */}
+        <div className="absolute top-4 right-4 z-10 hidden md:block fade-up fade-up-delay-1">
           <Legend />
         </div>
 
-        {/* Mobile timeline toggle button */}
+        {/* Mobile timeline toggle */}
         <button
-          className="md:hidden absolute bottom-4 right-4 z-20 w-11 h-11 rounded-full bg-surface shadow-float flex items-center justify-center text-primary border border-surface-3"
+          className="md:hidden absolute bottom-4 right-4 z-20 w-12 h-12 rounded-full flex items-center justify-center shadow-amber transition-transform hover:scale-105 active:scale-95"
+          style={{ background: 'linear-gradient(135deg, #E5870A, #C46010)', color: '#FFF' }}
           onClick={() => setTimelineOpen(true)}
           aria-label="Open sun timeline"
         >
@@ -367,22 +351,25 @@ export default function MapPage() {
           </svg>
         </button>
 
-        {/* Mobile timeline right panel */}
+        {/* Mobile timeline overlay */}
         {timelineOpen && (
           <div
-            className="md:hidden fixed inset-0 z-40 bg-black/30"
+            className="md:hidden fixed inset-0 z-40"
+            style={{ background: 'rgba(21,15,8,0.5)', backdropFilter: 'blur(2px)' }}
             onClick={() => setTimelineOpen(false)}
           />
         )}
         <div
-          className={`md:hidden fixed inset-y-0 right-0 z-50 w-28 bg-surface shadow-float flex flex-col transition-transform duration-300 ease-in-out ${
+          className={`md:hidden fixed inset-y-0 right-0 z-50 w-28 shadow-float flex flex-col transition-transform duration-300 ease-in-out ${
             timelineOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
+          style={{ background: '#150F08', borderLeft: '1px solid #2E1E0A' }}
         >
           <div className="flex justify-end px-2 pt-2">
             <button
               onClick={() => setTimelineOpen(false)}
-              className="p-1 rounded-lg hover:bg-surface-2 transition-colors text-text-3"
+              className="p-1 rounded-lg transition-colors"
+              style={{ color: '#7A6048' }}
               aria-label="Close timeline"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -395,7 +382,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      {/* Timeline — bottom bar on desktop only */}
+      {/* Timeline bar — desktop */}
       <div className="hidden md:block">
         <SunTimeline />
       </div>
