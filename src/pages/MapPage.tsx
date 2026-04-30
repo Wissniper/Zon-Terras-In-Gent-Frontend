@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Sky } from '@react-three/drei';
 import { CityTiles } from '../components/CityTiles';
@@ -19,7 +20,9 @@ export default function MapPage() {
           shadow-camera-top={2000}
           shadow-camera-bottom={-2000}
         />
-        <CityTiles />
+        <Suspense fallback={null}>
+          <CityTiles />
+        </Suspense>
       </Canvas>
     </div>
   );

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 
 //Verbind met API
-const socket = io('http://localhost:3000');
+const socket = io('https://api.sun-seeker.be');
 
 export const WeatherWidget = () => {
   type WeatherData = { uvIndex?: number; temperature?: number; windspeed?: number; cloudCover?: number };
@@ -11,7 +11,7 @@ export const WeatherWidget = () => {
 
   useEffect(() => {
   // Initiële data ophalen
-  fetch('http://localhost:3000/api/weather/51.05/3.72')
+  fetch('https://api.sun-seeker.be/api/weather/51.05/3.72')
     .then(res => res.json())
     .then(data => {
     
@@ -26,7 +26,7 @@ export const WeatherWidget = () => {
 socket.on('weather_update', (data) => {
   console.log("Socket update ontvangen!", data);
   
-  fetch('http://localhost:3000/api/weather/51.05/3.72')
+  fetch('https://api.sun-seeker.be/api/weather/51.05/3.72')
     .then(res => res.json())
     .then(json => {
       if (json.weather) {

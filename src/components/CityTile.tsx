@@ -8,9 +8,11 @@ interface CityTileProps {
 }
 
 export const CityTile: React.FC<CityTileProps> = ({ vaknummer, position }) => {
-  // Fetch from our new backend endpoint
-  const url = `http://localhost:3000/api/gent3d/${vaknummer}/glb`;
+  // Use environment variable or fallback to server API
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://api.sun-seeker.be'; 
+  const url = `${baseUrl}/api/gent3d/${vaknummer}/glb`;
   const { scene } = useGLTF(url);
+
 
   // Configure shadows for all meshes in the tile
   useMemo(() => {
