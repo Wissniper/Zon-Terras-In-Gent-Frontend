@@ -14,8 +14,13 @@ function intensityColor(v: number) {
   return v >= 70 ? '#E5870A' : v >= 40 ? '#F5AC32' : '#9B8570';
 }
 
-function IntensityBar({ value }: { value: number }) {
+function IntensityBar({ value, cloudCover }: { value: number; cloudCover?: number }) {
   const color = intensityColor(value);
+  
+  //Bepaal of het icoon getoond moet worden (> 80%)
+  console.log(cloudCover)
+  const isCloudy = cloudCover !== undefined && cloudCover > 80;
+
   return (
     <div className="flex items-center gap-2.5 mt-3">
       <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: '#EDE4D3' }}>
@@ -24,9 +29,18 @@ function IntensityBar({ value }: { value: number }) {
           style={{ width: `${value}%`, background: `linear-gradient(to right, ${color}88, ${color})` }}
         />
       </div>
-      <span className="text-xs font-semibold tabular-nums w-8 text-right" style={{ color }}>
-        {value}%
-      </span>
+      
+      {/*Toon het wolkje naast de score als het bewolkt is */}
+      <div className="flex items-center gap-1 shrink-0">
+        {isCloudy && (
+          <span title={`Heavy clouds (${cloudCover}%)`} className="text-sm">
+            ☁️
+          </span>
+        )}
+        <span className="text-xs font-semibold tabular-nums w-8 text-right" style={{ color }}>
+          {value}%
+        </span>
+      </div>
     </div>
   );
 }
@@ -49,7 +63,7 @@ function TerrasCard({ item }: { item: Terras & { '@id': string } }) {
           Terrace
         </span>
       </div>
-      <IntensityBar value={item.intensity} />
+      <IntensityBar value={item.intensity} cloudCover={item.latestSunData?.rawCloudCover} />
     </Link>
   );
 }
@@ -75,7 +89,7 @@ function RestaurantCard({ item }: { item: Restaurant & { '@id': string } }) {
           {item.cuisine}
         </span>
       </div>
-      <IntensityBar value={item.intensity} />
+      <IntensityBar value={item.intensity} cloudCover={item.latestSunData?.rawCloudCover} />
     </Link>
   );
 }
