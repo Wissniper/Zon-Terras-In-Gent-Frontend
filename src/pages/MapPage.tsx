@@ -1,7 +1,7 @@
 import { Suspense, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Sky } from '@react-three/drei';
 import { CityTiles } from '../components/CityTiles';
+import { Sky, OrbitControls } from '@react-three/drei';
 import { useSelectedTime } from '../contexts/TimeContext';
 import { useWeatherData } from '../hooks/useWeatherData';
 
@@ -285,7 +285,11 @@ export default function MapPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex-1 relative overflow-hidden">
-        <Canvas shadows camera={{ position: [0, 500, 500], fov: 50 }}>
+        <Canvas
+          shadows
+          camera={{ position: [0, 1500, 1500], fov: 50, far: 15000, near: 1 }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+        >
           <color attach="background" args={['#f0f0f0']} />
           <Sky sunPosition={[100, 20, 100]} />
           <ambientLight intensity={0.7} />
@@ -299,6 +303,7 @@ export default function MapPage() {
             shadow-camera-top={2000}
             shadow-camera-bottom={-2000}
           />
+          <OrbitControls />
           <Suspense fallback={null}>
             <CityTiles />
           </Suspense>
