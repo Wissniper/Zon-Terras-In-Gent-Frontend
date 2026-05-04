@@ -1,5 +1,7 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Suspense, useMemo, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { CityTiles } from '../components/CityTiles';
+import { Sky, OrbitControls } from '@react-three/drei';
 import { useSelectedTime } from '../contexts/TimeContext';
 import { useWeatherData } from '../hooks/useWeatherData';
 
@@ -283,55 +285,30 @@ export default function MapPage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex-1 relative overflow-hidden" style={{ background: '#FAF5EC' }}>
-
-        {/* Warm atmospheric gradient */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse 70% 60% at 60% 40%, rgba(245,172,50,0.10) 0%, rgba(229,135,10,0.05) 40%, transparent 70%)',
-          }}
-        />
-
-        {/* Subtle warm grid */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            backgroundImage: 'linear-gradient(to right, rgba(90,64,48,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(90,64,48,0.06) 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-          }}
-        />
-
-        {/* Coming soon placeholder */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center fade-up">
-            <div
-              className="w-20 h-20 rounded-3xl mx-auto mb-5 flex items-center justify-center sun-pulse"
-              style={{ background: 'rgba(229,135,10,0.10)', border: '1px solid rgba(229,135,10,0.22)' }}
-            >
-              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" strokeLinecap="round">
-                <circle cx="12" cy="12" r="4.5" stroke="#E5870A" strokeWidth="1.5" fill="rgba(229,135,10,0.12)" />
-                {[0,45,90,135,180,225,270,315].map((deg, i) => {
-                  const r = Math.PI * deg / 180;
-                  return <line key={i} x1={12 + Math.cos(r)*6.5} y1={12 + Math.sin(r)*6.5} x2={12 + Math.cos(r)*8.5} y2={12 + Math.sin(r)*8.5} stroke="#E5870A" strokeWidth="1.5" />;
-                })}
-              </svg>
-            </div>
-            <p className="font-display text-2xl font-semibold mb-2" style={{ color: '#1A1208' }}>
-              Interactive Map
-            </p>
-            <p className="text-sm mb-5 max-w-xs mx-auto" style={{ color: '#9B8570' }}>
-              3D map of Ghent's sunniest spots coming soon. Browse terraces below.
-            </p>
-            <Link
-              to="/search"
-              className="pointer-events-auto inline-block px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all hover:shadow-amber"
-              style={{ background: 'linear-gradient(135deg, #E5870A, #C4502A)' }}
-            >
-              Browse terraces →
-            </Link>
-          </div>
-        </div>
+      <div className="flex-1 relative overflow-hidden">
+        <Canvas
+          shadows
+          camera={{ position: [0, 1500, 1500], fov: 50, far: 15000, near: 1 }}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+        >
+          <color attach="background" args={['#f0f0f0']} />
+          <Sky sunPosition={[100, 20, 100]} />
+          <ambientLight intensity={0.7} />
+          <directionalLight
+            position={[100, 200, 100]}
+            intensity={1.5}
+            castShadow
+            shadow-mapSize={[2048, 2048]}
+            shadow-camera-left={-2000}
+            shadow-camera-right={2000}
+            shadow-camera-top={2000}
+            shadow-camera-bottom={-2000}
+          />
+          <OrbitControls />
+          <Suspense fallback={null}>
+            <CityTiles />
+          </Suspense>
+        </Canvas>
 
         {/* Legend — desktop right */}
         <div className="absolute top-4 right-4 z-10 hidden md:block fade-up fade-up-delay-1">
