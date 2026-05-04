@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
+useGLTF.setDecoderPath('/draco/');
+
 interface CityTileProps {
   vaknummer: string;
   position: [number, number, number];
