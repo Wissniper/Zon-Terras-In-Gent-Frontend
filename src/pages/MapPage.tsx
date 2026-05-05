@@ -1,13 +1,18 @@
-import { useState, useMemo } from 'react';
-import Map, { Layer, Marker, Popup } from 'react-map-gl';
-import type { LayerProps } from 'react-map-gl';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import Map, { Marker, Popup } from 'react-map-gl/mapbox';
+import type { MarkerEvent, MapRef } from 'react-map-gl/mapbox';
+import type { Map as MapboxMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useSelectedTime } from '../contexts/TimeContext';
 import { useWeatherData } from '../hooks/useWeatherData';
 import { useTerrasData } from '../hooks/useTerrasData';
-import type { Terras } from '../types';
+import { useRestaurantsData } from '../hooks/useRestaurantsData';
+import { useSunPosition } from '../hooks/useSunPosition';
+import type { Terras, Restaurant } from '../types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
+
+type LayerFilter = 'terras' | 'restaurants' | 'both';
 
 const INITIAL_VIEW = {
   longitude: 3.7174,
@@ -15,21 +20,6 @@ const INITIAL_VIEW = {
   zoom: 14,
   pitch: 45,
   bearing: -17,
-};
-
-const BUILDINGS_LAYER: LayerProps = {
-  id: '3d-buildings',
-  source: 'composite',
-  'source-layer': 'building',
-  filter: ['==', 'extrude', 'true'],
-  type: 'fill-extrusion',
-  minzoom: 14,
-  paint: {
-    'fill-extrusion-color': '#aaa',
-    'fill-extrusion-height': ['get', 'height'],
-    'fill-extrusion-base': ['get', 'min_height'],
-    'fill-extrusion-opacity': 0.6,
-  },
 };
 
 function intensityColor(intensity: number): string {
@@ -313,28 +303,64 @@ function Legend() {
 }
 
 export default function MapPage() {
+  const mapRef = useRef<MapRef>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [selectedTerras, setSelectedTerras] = useState<Terras | null>(null);
+  const [layerFilter, setLayerFilter] = useState<LayerFilter>('both');
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const { data: terrasen = [] } = useTerrasData();
+  const { data: restaurants = [] } = useRestaurantsData();
+  const sunPosition = useSunPosition();
+
+  useEffect(() => {
+    if (!mapLoaded || !sunPosition || !mapRef.current) return;
+    if (sunPosition.altitude <= 0) return; // sun below horizon, no shadows
+
+    const map = mapRef.current.getMap() as MapboxMap;
+    const azimuthDeg = ((sunPosition.azimuth * 180) / Math.PI + 180) % 360;
+    const altitudeDeg = (sunPosition.altitude * 180) / Math.PI;
+    const polarDeg = 90 - altitudeDeg; // polar is from zenith; altitude is from horizon
+
+    map.setLights([
+      {
+        id: 'sun',
+        type: 'directional',
+        properties: {
+          direction: [azimuthDeg, polarDeg],
+          color: 'white',
+          intensity: 0.5,
+          'cast-shadows': true,
+          'shadow-intensity': 0.8,
+        },
+      },
+      {
+        id: 'ambient',
+        type: 'ambient',
+        properties: { color: 'white', intensity: 0.3 },
+      },
+    ]);
+  }, [sunPosition, mapLoaded]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex-1 relative overflow-hidden">
         <Map
+          ref={mapRef}
           mapboxAccessToken={MAPBOX_TOKEN}
           initialViewState={INITIAL_VIEW}
           style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
-          mapStyle="mapbox://styles/mapbox/dark-v11"
+          mapStyle="mapbox://styles/mapbox/standard"
+          onLoad={() => setMapLoaded(true)}
         >
-          <Layer {...BUILDINGS_LAYER} />
-
-          {terrasen.map((t) => (
+          {(layerFilter === 'terras' || layerFilter === 'both') &&
+          terrasen.map((t) => (
             <Marker
               key={t.uuid}
               longitude={t.location.coordinates[0]}
               latitude={t.location.coordinates[1]}
               anchor="center"
-              onClick={(e) => {
+              onClick={(e: MarkerEvent<MouseEvent>) => {
                 e.originalEvent.stopPropagation();
                 setSelectedTerras(t);
               }}
@@ -385,11 +411,99 @@ export default function MapPage() {
               </div>
             </Popup>
           )}
+
+          {(layerFilter === 'restaurants' || layerFilter === 'both') &&
+            restaurants.map((r) => (
+              <Marker
+                key={r.uuid}
+                longitude={r.location.coordinates[0]}
+                latitude={r.location.coordinates[1]}
+                anchor="center"
+                onClick={(e: MarkerEvent<MouseEvent>) => {
+                  e.originalEvent.stopPropagation();
+                  setSelectedRestaurant(r);
+                }}
+              >
+                <div
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 3,
+                    background: intensityColor(r.intensity),
+                    border: '2px solid rgba(255,255,255,0.5)',
+                    cursor: 'pointer',
+                    transition: 'transform 0.1s',
+                  }}
+                />
+              </Marker>
+            ))}
+
+          {selectedRestaurant && (
+            <Popup
+              longitude={selectedRestaurant.location.coordinates[0]}
+              latitude={selectedRestaurant.location.coordinates[1]}
+              anchor="bottom"
+              onClose={() => setSelectedRestaurant(null)}
+              closeOnClick={false}
+              offset={10}
+            >
+              <div style={{ padding: '10px 12px', minWidth: 160 }}>
+                <p style={{ fontWeight: 600, color: '#E8C98A', marginBottom: 4, fontSize: 14 }}>
+                  {selectedRestaurant.name}
+                </p>
+                <p style={{ color: '#7A6048', fontSize: 11, marginBottom: 2 }}>
+                  {selectedRestaurant.cuisine}
+                </p>
+                <p style={{ color: '#9B8570', fontSize: 12, marginBottom: 6 }}>
+                  {selectedRestaurant.address}
+                </p>
+                <p style={{ fontSize: 12, color: intensityColor(selectedRestaurant.intensity), marginBottom: selectedRestaurant.website ? 8 : 0 }}>
+                  ☀ {selectedRestaurant.intensity}/100
+                </p>
+                {selectedRestaurant.website && (
+                  <a
+                    href={selectedRestaurant.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: 12, color: '#E5870A', textDecoration: 'underline' }}
+                  >
+                    Visit website
+                  </a>
+                )}
+              </div>
+            </Popup>
+          )}
         </Map>
 
         {/* Legend — desktop right */}
         <div className="absolute top-4 right-4 z-10 hidden md:block fade-up fade-up-delay-1">
           <Legend />
+        </div>
+
+        {/* Layer toggle — bottom left */}
+        <div
+          className="absolute bottom-4 left-4 z-10 flex rounded-xl overflow-hidden"
+          style={{ background: 'rgba(21,15,8,0.88)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}
+        >
+          {(['terras', 'both', 'restaurants'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setLayerFilter(f)}
+              style={{
+                padding: '6px 10px',
+                fontSize: 11,
+                fontWeight: layerFilter === f ? 600 : 400,
+                color: layerFilter === f ? '#E8C98A' : '#7A6048',
+                background: layerFilter === f ? 'rgba(229,135,10,0.2)' : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                textTransform: 'capitalize',
+              }}
+            >
+              {f === 'both' ? 'All' : f === 'terras' ? 'Terraces' : 'Restaurants'}
+            </button>
+          ))}
         </div>
 
         {/* Mobile timeline toggle */}
