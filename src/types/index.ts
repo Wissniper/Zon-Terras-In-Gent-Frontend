@@ -17,6 +17,13 @@ export interface Terras {
   deletedAt?: string;
   createdAt: string;
   updatedAt: string;
+
+  latestSunData?: {
+    rawCloudCover?: number;
+    cloudFactor?: number;
+    intensity?: number;
+  };
+ 
 }
 
 export interface Restaurant {
@@ -37,6 +44,12 @@ export interface Restaurant {
   deletedAt?: string;
   createdAt: string;
   updatedAt: string;
+  
+  latestSunData?: {
+    rawCloudCover?: number;
+    cloudFactor?: number;
+    intensity?: number;
+  };
 }
 
 export interface Event {
@@ -57,6 +70,12 @@ export interface Event {
   deletedAt?: string;
   createdAt: string;
   updatedAt: string;
+
+  latestSunData?: {
+    rawCloudCover?: number;
+    cloudFactor?: number;
+    intensity?: number;
+  };
 }
 
 export interface GoldenHour {
@@ -77,6 +96,8 @@ export interface SunData {
   goldenHour: GoldenHour;
   createdAt: string;
   updatedAt: string;
+  rawCloudCover?: number; 
+  cloudFactor?: number;
 }
 
 export interface Weather {
