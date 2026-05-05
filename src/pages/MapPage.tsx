@@ -1,6 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import Map, { Marker, Popup } from 'react-map-gl';
-import type { MapRef } from 'react-map-gl';
+import Map, { Marker, Popup } from 'react-map-gl/mapbox';
+import type { MapRef, MarkerEvent } from 'react-map-gl/mapbox';
+import mapboxgl from 'mapbox-gl';
+import type { Map as MapboxMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useSelectedTime } from '../contexts/TimeContext';
 import { useWeatherData } from '../hooks/useWeatherData';
@@ -316,40 +318,37 @@ export default function MapPage() {
   const sunPosition = useSunPosition();
 
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current) return;
-    const map = mapRef.current.getMap();
-
-    map.addLayer({
-      id: '3d-buildings',
-      source: 'composite',
-      'source-layer': 'building',
-      filter: ['==', 'extrude', 'true'],
-      type: 'fill-extrusion',
-      minzoom: 13,
-      paint: {
-        'fill-extrusion-color': '#2A1E14',
-        'fill-extrusion-height': ['get', 'height'],
-        'fill-extrusion-base': ['get', 'min_height'],
-        'fill-extrusion-opacity': 0.8,
-      },
-    });
-  }, [mapLoaded]);
-
-  useEffect(() => {
     if (!mapLoaded || !sunPosition || !mapRef.current) return;
-    if (sunPosition.altitude <= 0) return;
 
-    const map = mapRef.current.getMap();
-    const azimuthDeg = ((sunPosition.azimuth * 180) / Math.PI + 180) % 360;
+    const map = mapRef.current.getMap() as MapboxMap;
+    const compassDeg = ((sunPosition.azimuth * 180) / Math.PI + 180) % 360;
     const altitudeDeg = (sunPosition.altitude * 180) / Math.PI;
     const polarDeg = 90 - altitudeDeg;
 
-    map.setLight({
-      anchor: 'map',
-      color: 'white',
-      intensity: 0.5,
-      position: [1.5, azimuthDeg, polarDeg],
-    });
+    if (sunPosition.altitude > 0) {
+      map.setLights([
+        {
+          id: 'sun',
+          type: 'directional',
+          properties: {
+            direction: [compassDeg, polarDeg],
+            color: 'white',
+            intensity: Math.min(1, 0.4 + (altitudeDeg / 90) * 0.8),
+            'cast-shadows': true,
+            'shadow-intensity': 1,
+          },
+        },
+        {
+          id: 'ambient',
+          type: 'ambient',
+          properties: { color: 'white', intensity: 0.2 },
+        },
+      ]);
+    } else {
+      map.setLights([
+        { id: 'ambient', type: 'ambient', properties: { color: '#1a2744', intensity: 0.4 } },
+      ]);
+    }
   }, [sunPosition, mapLoaded]);
 
   return (
@@ -360,7 +359,8 @@ export default function MapPage() {
           mapboxAccessToken={MAPBOX_TOKEN}
           initialViewState={INITIAL_VIEW}
           style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
-          mapStyle="mapbox://styles/mapbox/dark-v11"
+          mapLib={mapboxgl}
+          mapStyle="mapbox://styles/mapbox/standard"
           onLoad={() => setMapLoaded(true)}
         >
           {(layerFilter === 'terras' || layerFilter === 'all') &&
@@ -370,7 +370,7 @@ export default function MapPage() {
               longitude={t.location.coordinates[0]}
               latitude={t.location.coordinates[1]}
               anchor="center"
-              onClick={(e) => {
+              onClick={(e: MarkerEvent<MouseEvent>) => {
                 e.originalEvent.stopPropagation();
                 setSelectedTerras(t);
               }}
@@ -429,7 +429,7 @@ export default function MapPage() {
                 longitude={r.location.coordinates[0]}
                 latitude={r.location.coordinates[1]}
                 anchor="center"
-                onClick={(e) => {
+                onClick={(e: MarkerEvent<MouseEvent>) => {
                   e.originalEvent.stopPropagation();
                   setSelectedRestaurant(r);
                 }}
@@ -491,7 +491,7 @@ export default function MapPage() {
                 longitude={ev.location.coordinates[0]}
                 latitude={ev.location.coordinates[1]}
                 anchor="center"
-                onClick={(e) => {
+                onClick={(e: MarkerEvent<MouseEvent>) => {
                   e.originalEvent.stopPropagation();
                   setSelectedEvent(ev);
                 }}
