@@ -4,6 +4,7 @@ import type { MapRef, MarkerEvent } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { useLocation } from 'react-router-dom';
 import { useSelectedTime } from '../contexts/TimeContext';
 import { useWeatherData } from '../hooks/useWeatherData';
 import { useTerrasData } from '../hooks/useTerrasData';
@@ -316,6 +317,30 @@ export default function MapPage() {
   const { data: restaurants = [] } = useRestaurantsData();
   const { data: events = [] } = useEventsData();
   const sunPosition = useSunPosition();
+  const location = useLocation();
+
+  useEffect(() => {
+    const state = location.state as { focusId?: string; type?: string } | null;
+    if (!state?.focusId || !mapLoaded) return;
+    const { focusId, type } = state;
+
+    let item: { location: { coordinates: [number, number] } } | undefined;
+    if (type === 'terras') {
+      const found = terrasen.find(t => t.uuid === focusId);
+      if (found) { setSelectedTerras(found); item = found; }
+    } else if (type === 'restaurant') {
+      const found = restaurants.find(r => r.uuid === focusId);
+      if (found) { setSelectedRestaurant(found); item = found; }
+    } else if (type === 'event') {
+      const found = events.find(e => e.uuid === focusId);
+      if (found) { setSelectedEvent(found); item = found; }
+    }
+
+    if (item && mapRef.current) {
+      const [lng, lat] = item.location.coordinates;
+      mapRef.current.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
+    }
+  }, [mapLoaded, location.state, terrasen, restaurants, events]);
 
   useEffect(() => {
     if (!mapLoaded || !sunPosition || !mapRef.current) return;

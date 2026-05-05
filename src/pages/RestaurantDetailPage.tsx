@@ -102,6 +102,16 @@ export default function RestaurantDetailPage() {
             </div>
           </div>
 
+          <div className="mb-5">
+            <button
+              onClick={() => navigate('/', { state: { focusId: id, type: 'restaurant' } })}
+              className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+              style={{ background: '#FEF5E6', color: '#E5870A', border: '1px solid rgba(229,135,10,0.2)' }}
+            >
+              View on 3D map ↗
+            </button>
+          </div>
+
           {/* Details rows */}
           <div>
             {restaurant.phone && <Row label="Phone" value={restaurant.phone} href={`tel:${restaurant.phone}`} />}

@@ -105,17 +105,26 @@ export default function EventDetailPage() {
             </div>
           )}
 
-          {event.url && (
-            <a
-              href={event.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => navigate('/', { state: { focusId: id, type: 'event' } })}
+              className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
               style={{ background: '#FEF5E6', color: '#E5870A', border: '1px solid rgba(229,135,10,0.2)' }}
             >
-              More information ↗
-            </a>
-          )}
+              View on 3D map ↗
+            </button>
+            {event.url && (
+              <a
+                href={event.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors text-text-3"
+                style={{ background: '#F5EEE2', border: '1px solid #EDE4D3' }}
+              >
+                More information ↗
+              </a>
+            )}
+          </div>
         </div>
 
         <div className="rounded-3xl overflow-hidden h-56 fade-up fade-up-delay-1" style={{ border: '1px solid #EDE4D3', boxShadow: '0 4px 24px rgba(26,18,8,0.07)' }}>

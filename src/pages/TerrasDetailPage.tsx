@@ -98,13 +98,20 @@ export default function TerrasDetailPage() {
           )}
 
           <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => navigate('/', { state: { focusId: id, type: 'terras' } })}
+              className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+              style={{ background: '#FEF5E6', color: '#E5870A', border: '1px solid rgba(229,135,10,0.2)' }}
+            >
+              View on 3D map ↗
+            </button>
             {terras.url && (
               <a
                 href={terras.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                style={{ background: '#FEF5E6', color: '#E5870A', border: '1px solid rgba(229,135,10,0.2)' }}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors text-text-3"
+                style={{ background: '#F5EEE2', border: '1px solid #EDE4D3' }}
               >
                 Visit website ↗
               </a>
