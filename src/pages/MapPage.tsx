@@ -1,9 +1,42 @@
-import { Suspense, useMemo, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { CityTiles } from '../components/CityTiles';
-import { Sky, OrbitControls } from '@react-three/drei';
+import { useState, useMemo } from 'react';
+import Map, { Layer, Marker, Popup } from 'react-map-gl';
+import type { LayerProps } from 'react-map-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import { useSelectedTime } from '../contexts/TimeContext';
 import { useWeatherData } from '../hooks/useWeatherData';
+import { useTerrasData } from '../hooks/useTerrasData';
+import type { Terras } from '../types';
+
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
+
+const INITIAL_VIEW = {
+  longitude: 3.7174,
+  latitude: 51.0543,
+  zoom: 14,
+  pitch: 45,
+  bearing: -17,
+};
+
+const BUILDINGS_LAYER: LayerProps = {
+  id: '3d-buildings',
+  source: 'composite',
+  'source-layer': 'building',
+  filter: ['==', 'extrude', 'true'],
+  type: 'fill-extrusion',
+  minzoom: 14,
+  paint: {
+    'fill-extrusion-color': '#aaa',
+    'fill-extrusion-height': ['get', 'height'],
+    'fill-extrusion-base': ['get', 'min_height'],
+    'fill-extrusion-opacity': 0.6,
+  },
+};
+
+function intensityColor(intensity: number): string {
+  if (intensity >= 67) return '#F5AC32';
+  if (intensity >= 34) return '#E5870A';
+  return '#5B9BD5';
+}
 
 const TOTAL_MINUTES = 48 * 60 - 1;
 
@@ -281,33 +314,78 @@ function Legend() {
 
 export default function MapPage() {
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [selectedTerras, setSelectedTerras] = useState<Terras | null>(null);
+  const { data: terrasen = [] } = useTerrasData();
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex-1 relative overflow-hidden">
-        <Canvas
-          shadows
-          camera={{ position: [0, 1500, 1500], fov: 50, far: 15000, near: 1 }}
-          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+        <Map
+          mapboxAccessToken={MAPBOX_TOKEN}
+          initialViewState={INITIAL_VIEW}
+          style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
+          mapStyle="mapbox://styles/mapbox/dark-v11"
         >
-          <color attach="background" args={['#f0f0f0']} />
-          <Sky sunPosition={[100, 20, 100]} />
-          <ambientLight intensity={0.7} />
-          <directionalLight
-            position={[100, 200, 100]}
-            intensity={1.5}
-            castShadow
-            shadow-mapSize={[2048, 2048]}
-            shadow-camera-left={-2000}
-            shadow-camera-right={2000}
-            shadow-camera-top={2000}
-            shadow-camera-bottom={-2000}
-          />
-          <OrbitControls />
-          <Suspense fallback={null}>
-            <CityTiles />
-          </Suspense>
-        </Canvas>
+          <Layer {...BUILDINGS_LAYER} />
+
+          {terrasen.map((t) => (
+            <Marker
+              key={t.uuid}
+              longitude={t.location.coordinates[0]}
+              latitude={t.location.coordinates[1]}
+              anchor="center"
+              onClick={(e) => {
+                e.originalEvent.stopPropagation();
+                setSelectedTerras(t);
+              }}
+            >
+              <div
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  background: intensityColor(t.intensity),
+                  border: '2px solid rgba(255,255,255,0.5)',
+                  cursor: 'pointer',
+                  transition: 'transform 0.1s',
+                }}
+              />
+            </Marker>
+          ))}
+
+          {selectedTerras && (
+            <Popup
+              longitude={selectedTerras.location.coordinates[0]}
+              latitude={selectedTerras.location.coordinates[1]}
+              anchor="bottom"
+              onClose={() => setSelectedTerras(null)}
+              closeOnClick={false}
+              offset={10}
+            >
+              <div style={{ padding: '10px 12px', minWidth: 160 }}>
+                <p style={{ fontWeight: 600, color: '#E8C98A', marginBottom: 4, fontSize: 14 }}>
+                  {selectedTerras.name}
+                </p>
+                <p style={{ color: '#9B8570', fontSize: 12, marginBottom: 6 }}>
+                  {selectedTerras.address}
+                </p>
+                <p style={{ fontSize: 12, color: intensityColor(selectedTerras.intensity), marginBottom: selectedTerras.url ? 8 : 0 }}>
+                  ☀ {selectedTerras.intensity}/100
+                </p>
+                {selectedTerras.url && (
+                  <a
+                    href={selectedTerras.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: 12, color: '#E5870A', textDecoration: 'underline' }}
+                  >
+                    Visit website
+                  </a>
+                )}
+              </div>
+            </Popup>
+          )}
+        </Map>
 
         {/* Legend — desktop right */}
         <div className="absolute top-4 right-4 z-10 hidden md:block fade-up fade-up-delay-1">
