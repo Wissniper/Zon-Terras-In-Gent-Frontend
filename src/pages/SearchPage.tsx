@@ -17,8 +17,6 @@ function intensityColor(v: number) {
 function IntensityBar({ value, cloudCover }: { value: number; cloudCover?: number }) {
   const color = intensityColor(value);
   
-  //Bepaal of het icoon getoond moet worden (> 80%)
-  console.log(cloudCover)
   const isCloudy = cloudCover !== undefined && cloudCover > 80;
 
   return (
