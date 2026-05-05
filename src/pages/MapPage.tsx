@@ -6,12 +6,13 @@ import { useSelectedTime } from '../contexts/TimeContext';
 import { useWeatherData } from '../hooks/useWeatherData';
 import { useTerrasData } from '../hooks/useTerrasData';
 import { useRestaurantsData } from '../hooks/useRestaurantsData';
+import { useEventsData } from '../hooks/useEventsData';
 import { useSunPosition } from '../hooks/useSunPosition';
-import type { Terras, Restaurant } from '../types';
+import type { Terras, Restaurant, Event } from '../types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
 
-type LayerFilter = 'terras' | 'restaurants' | 'both';
+type LayerFilter = 'terras' | 'restaurants' | 'events' | 'all';
 
 const INITIAL_VIEW = {
   longitude: 3.7174,
@@ -306,10 +307,12 @@ export default function MapPage() {
   const [mapLoaded, setMapLoaded] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [selectedTerras, setSelectedTerras] = useState<Terras | null>(null);
-  const [layerFilter, setLayerFilter] = useState<LayerFilter>('both');
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
   const { data: terrasen = [] } = useTerrasData();
   const { data: restaurants = [] } = useRestaurantsData();
+  const { data: events = [] } = useEventsData();
   const sunPosition = useSunPosition();
 
   useEffect(() => {
@@ -360,7 +363,7 @@ export default function MapPage() {
           mapStyle="mapbox://styles/mapbox/dark-v11"
           onLoad={() => setMapLoaded(true)}
         >
-          {(layerFilter === 'terras' || layerFilter === 'both') &&
+          {(layerFilter === 'terras' || layerFilter === 'all') &&
           terrasen.map((t) => (
             <Marker
               key={t.uuid}
@@ -377,7 +380,7 @@ export default function MapPage() {
                   width: 14,
                   height: 14,
                   borderRadius: '50%',
-                  background: intensityColor(t.intensity),
+                  background: '#F5AC32',
                   border: '2px solid rgba(255,255,255,0.5)',
                   cursor: 'pointer',
                   transition: 'transform 0.1s',
@@ -419,7 +422,7 @@ export default function MapPage() {
             </Popup>
           )}
 
-          {(layerFilter === 'restaurants' || layerFilter === 'both') &&
+          {(layerFilter === 'restaurants' || layerFilter === 'all') &&
             restaurants.map((r) => (
               <Marker
                 key={r.uuid}
@@ -436,7 +439,7 @@ export default function MapPage() {
                     width: 12,
                     height: 12,
                     borderRadius: 3,
-                    background: intensityColor(r.intensity),
+                    background: '#34D399',
                     border: '2px solid rgba(255,255,255,0.5)',
                     cursor: 'pointer',
                     transition: 'transform 0.1s',
@@ -480,6 +483,68 @@ export default function MapPage() {
               </div>
             </Popup>
           )}
+
+          {(layerFilter === 'events' || layerFilter === 'all') &&
+            events.map((ev) => (
+              <Marker
+                key={ev.uuid}
+                longitude={ev.location.coordinates[0]}
+                latitude={ev.location.coordinates[1]}
+                anchor="center"
+                onClick={(e) => {
+                  e.originalEvent.stopPropagation();
+                  setSelectedEvent(ev);
+                }}
+              >
+                <div
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 2,
+                    background: '#A855F7',
+                    border: '2px solid rgba(255,255,255,0.5)',
+                    cursor: 'pointer',
+                    transform: 'rotate(45deg)',
+                    transition: 'transform 0.1s',
+                  }}
+                />
+              </Marker>
+            ))}
+
+          {selectedEvent && (
+            <Popup
+              longitude={selectedEvent.location.coordinates[0]}
+              latitude={selectedEvent.location.coordinates[1]}
+              anchor="bottom"
+              onClose={() => setSelectedEvent(null)}
+              closeOnClick={false}
+              offset={10}
+            >
+              <div style={{ padding: '10px 12px', minWidth: 160 }}>
+                <p style={{ fontWeight: 600, color: '#E8C98A', marginBottom: 4, fontSize: 14 }}>
+                  {selectedEvent.title}
+                </p>
+                <p style={{ color: '#9B8570', fontSize: 12, marginBottom: 6 }}>
+                  {selectedEvent.address}
+                </p>
+                {selectedEvent.intensity != null && (
+                  <p style={{ fontSize: 12, color: intensityColor(selectedEvent.intensity), marginBottom: selectedEvent.url ? 8 : 0 }}>
+                    ☀ {selectedEvent.intensity}/100
+                  </p>
+                )}
+                {selectedEvent.url && (
+                  <a
+                    href={selectedEvent.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: 12, color: '#E5870A', textDecoration: 'underline' }}
+                  >
+                    More info
+                  </a>
+                )}
+              </div>
+            </Popup>
+          )}
         </Map>
 
         {/* Legend — desktop right */}
@@ -492,7 +557,7 @@ export default function MapPage() {
           className="absolute bottom-4 left-4 z-10 flex rounded-xl overflow-hidden"
           style={{ background: 'rgba(21,15,8,0.88)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}
         >
-          {(['terras', 'both', 'restaurants'] as const).map((f) => (
+          {(['all', 'terras', 'restaurants', 'events'] as const).map((f) => (
             <button
               key={f}
               onClick={() => setLayerFilter(f)}
@@ -508,7 +573,7 @@ export default function MapPage() {
                 textTransform: 'capitalize',
               }}
             >
-              {f === 'both' ? 'All' : f === 'terras' ? 'Terraces' : 'Restaurants'}
+              {f === 'all' ? 'All' : f === 'terras' ? 'Terraces' : f === 'restaurants' ? 'Restaurants' : 'Events'}
             </button>
           ))}
         </div>
