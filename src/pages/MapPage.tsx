@@ -362,6 +362,8 @@ export default function MapPage() {
           mapLib={mapboxgl}
           mapStyle="mapbox://styles/mapbox/standard"
           onLoad={() => setMapLoaded(true)}
+          maxBounds={[3.65, 50.99, 3.82, 51.12]}
+          minZoom={12}
         >
           {(layerFilter === 'terras' || layerFilter === 'all') &&
           terrasen.map((t) => (
