@@ -12,6 +12,8 @@ import { useRestaurantsData } from '../hooks/useRestaurantsData';
 import { useEventsData } from '../hooks/useEventsData';
 import { useSunPosition } from '../hooks/useSunPosition';
 import { useTerrasSunData } from '../hooks/useTerrasSunData';
+import { useRestaurantSunData } from '../hooks/useRestaurantSunData';
+import { useEventSunData } from '../hooks/useEventSunData';
 import { intensityColor } from '../utils/intensity';
 import type { Terras, Restaurant, Event } from '../types';
 
@@ -111,6 +113,12 @@ function SunTimeline() {
           Sun Timeline
         </p>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSelectedTime(new Date().toISOString())}
+            style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-sidebar-brand)', background: 'rgba(229,135,10,0.15)', border: '1px solid rgba(229,135,10,0.4)', borderRadius: 6, padding: '2px 7px', cursor: 'pointer', lineHeight: 1.6 }}
+          >
+            Now
+          </button>
           <span className="text-xs font-medium" style={{ color: 'var(--color-sidebar-accent)' }}>{displayDay}</span>
           <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--color-sidebar-brand)' }}>{displayTime}</span>
         </div>
@@ -225,7 +233,13 @@ function SunTimelineVertical() {
   const thumbPct = (selectedMinutes / TOTAL_MINUTES) * 100;
 
   return (
-    <div className="flex flex-1 min-h-0 px-2 py-3 gap-1 select-none" style={{ background: 'var(--color-sidebar)' }}>
+    <div className="flex flex-1 min-h-0 px-2 py-3 gap-1 select-none" style={{ background: 'var(--color-sidebar)', position: 'relative' }}>
+      <button
+        onClick={() => setSelectedTime(new Date().toISOString())}
+        style={{ position: 'absolute', top: 8, right: 6, fontSize: 9, fontWeight: 700, color: 'var(--color-sidebar-brand)', background: 'rgba(229,135,10,0.15)', border: '1px solid rgba(229,135,10,0.4)', borderRadius: 5, padding: '2px 5px', cursor: 'pointer', lineHeight: 1.6, zIndex: 10 }}
+      >
+        Now
+      </button>
       <div className="relative flex justify-center w-7 flex-shrink-0 self-stretch">
         <div
           className="absolute rounded-full pointer-events-none"
@@ -340,7 +354,11 @@ export default function MapPage() {
   const { data: restaurants = [] } = useRestaurantsData();
   const { data: events = [] } = useEventsData();
   const sunPosition = useSunPosition();
-  const { shadowScore: terrasShadowScore } = useTerrasSunData(selectedTerras?.uuid ?? null);
+  const terrasSunData = useTerrasSunData(selectedTerras?.uuid ?? null);
+  const restaurantSunData = useRestaurantSunData(selectedRestaurant?.uuid ?? null);
+  const eventSunData = useEventSunData(selectedEvent?.uuid ?? null);
+  const altitudeDeg = sunPosition ? (sunPosition.altitude * 180) / Math.PI : 0;
+  const sunBrightness = Math.max(0.15, Math.sin(Math.max(0, altitudeDeg) * Math.PI / 180));
   const location = useLocation();
 
   useEffect(() => {
@@ -431,7 +449,7 @@ export default function MapPage() {
                   setSelectedTerras(t);
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', opacity: sunBrightness }}>
                   <svg width="26" height="26" viewBox="0 0 26 26" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
                     {[0, 60, 120, 180, 240, 300].map(deg => {
                       const r = (deg * Math.PI) / 180;
@@ -442,6 +460,11 @@ export default function MapPage() {
                   <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,0.65)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>
                     {t.name}
                   </span>
+                  {t.uuid === selectedTerras?.uuid && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#E5870A', background: 'rgba(0,0,0,0.75)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap' }}>
+                      ☀ {terrasSunData.intensity}%
+                    </span>
+                  )}
                 </div>
               </Marker>
             ))}
@@ -471,7 +494,7 @@ export default function MapPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 4 }}>
                   <span style={{ fontSize: 11, color: 'var(--color-sidebar-muted)' }}>Shadow</span>
                   <span style={{ fontSize: 12, fontWeight: 600, color: '#9B8570' }}>
-                    🌑 {Math.round((1 - terrasShadowScore) * 100)}%
+                    🌑 {Math.round((1 - terrasSunData.shadowScore) * 100)}%
                   </span>
                 </div>
                 {selectedTerras.url && (
@@ -501,7 +524,7 @@ export default function MapPage() {
                   setSelectedRestaurant(r);
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', opacity: sunBrightness }}>
                   <svg width="22" height="24" viewBox="0 0 22 24" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
                     <rect x="0.75" y="0.75" width="20.5" height="22.5" rx="6" fill={MARKER_COLORS.restaurant} stroke="white" strokeWidth="1.5" />
                     {/* fork */}
@@ -514,6 +537,11 @@ export default function MapPage() {
                   <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,0.65)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>
                     {r.name}
                   </span>
+                  {r.uuid === selectedRestaurant?.uuid && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#38BDF8', background: 'rgba(0,0,0,0.75)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap' }}>
+                      ☀ {restaurantSunData.intensity}%
+                    </span>
+                  )}
                 </div>
               </Marker>
             ))}
@@ -570,7 +598,7 @@ export default function MapPage() {
                   setSelectedEvent(ev);
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer', opacity: sunBrightness }}>
                   <svg width="24" height="24" viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
                     <polygon
                       points="12,2 14.4,8.8 21.5,9 16.3,13.6 18.4,20.5 12,16.9 5.6,20.5 7.7,13.6 2.5,9 9.6,8.8"
@@ -583,6 +611,11 @@ export default function MapPage() {
                   <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,0.65)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>
                     {ev.title}
                   </span>
+                  {ev.uuid === selectedEvent?.uuid && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#F87171', background: 'rgba(0,0,0,0.75)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap' }}>
+                      ☀ {eventSunData.intensity}%
+                    </span>
+                  )}
                 </div>
               </Marker>
             ))}
