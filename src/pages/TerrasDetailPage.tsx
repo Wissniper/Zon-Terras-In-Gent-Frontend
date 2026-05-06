@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getTerrasById } from '../services/terrasService';
 import { fetchSunForTerras } from '../services/sunService';
 import { intensityColor } from '../utils/intensity';
+import { useSelectedTime } from '../contexts/TimeContext';
 
 function SunStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -17,6 +18,7 @@ function SunStat({ label, value, sub }: { label: string; value: string; sub?: st
 export default function TerrasDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { selectedTime } = useSelectedTime();
 
   const { data: terras, isLoading, isError } = useQuery({
     queryKey: ['terras', id],
@@ -25,8 +27,8 @@ export default function TerrasDetailPage() {
   });
 
   const { data: sunResponse } = useQuery({
-    queryKey: ['sun-terras', id],
-    queryFn: () => fetchSunForTerras(id!),
+    queryKey: ['sun-terras', id, selectedTime],
+    queryFn: () => fetchSunForTerras(id!, selectedTime),
     enabled: !!id,
   });
 
