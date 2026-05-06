@@ -312,19 +312,12 @@ function Legend() {
         </p>
         <div className="space-y-1.5">
           {[
-            { color: MARKER_COLORS.terras,     shape: 'circle', label: 'Terraces' },
-            { color: MARKER_COLORS.restaurant, shape: 'square', label: 'Restaurants' },
-            { color: MARKER_COLORS.event,      shape: 'diamond', label: 'Events' },
-          ].map(({ color, shape, label }) => (
+            { icon: '☀', color: MARKER_COLORS.terras,     label: 'Terraces' },
+            { icon: '🍴', color: MARKER_COLORS.restaurant, label: 'Restaurants' },
+            { icon: '★',  color: MARKER_COLORS.event,      label: 'Events' },
+          ].map(({ icon, color, label }) => (
             <div key={label} className="flex items-center gap-2">
-              <span
-                className="w-2.5 h-2.5 shrink-0"
-                style={{
-                  background: color,
-                  borderRadius: shape === 'circle' ? '50%' : shape === 'diamond' ? '2px' : '2px',
-                  transform: shape === 'diamond' ? 'rotate(45deg)' : 'none',
-                }}
-              />
+              <span style={{ fontSize: 12, color, lineHeight: 1 }}>{icon}</span>
               <span className="text-xs" style={{ color: 'var(--color-sidebar-muted)' }}>{label}</span>
             </div>
           ))}
@@ -423,7 +416,7 @@ export default function MapPage() {
           maxBounds={[3.65, 50.99, 3.82, 51.12]}
           minZoom={12}
         >
-          {/* Terrace markers — gold circles */}
+          {/* Terrace markers — gold sun */}
           {(layerFilter === 'terras' || layerFilter === 'all') &&
             terrasen.map((t) => (
               <Marker
@@ -436,28 +429,15 @@ export default function MapPage() {
                   setSelectedTerras(t);
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
-                  <div
-                    style={{
-                      width: 14,
-                      height: 14,
-                      borderRadius: '50%',
-                      background: MARKER_COLORS.terras,
-                      border: '2px solid rgba(255,255,255,0.5)',
-                      transition: 'transform 0.1s',
-                    }}
-                  />
-                  <span style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    color: '#fff',
-                    textShadow: '0 1px 3px rgba(0,0,0,0.9)',
-                    whiteSpace: 'nowrap',
-                    maxWidth: 90,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    lineHeight: 1,
-                  }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                  <svg width="26" height="26" viewBox="0 0 26 26" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+                    {[0, 60, 120, 180, 240, 300].map(deg => {
+                      const r = (deg * Math.PI) / 180;
+                      return <line key={deg} x1={13 + 7.5 * Math.cos(r)} y1={13 + 7.5 * Math.sin(r)} x2={13 + 11 * Math.cos(r)} y2={13 + 11 * Math.sin(r)} stroke={MARKER_COLORS.terras} strokeWidth="1.8" strokeLinecap="round" />;
+                    })}
+                    <circle cx="13" cy="13" r="5.5" fill={MARKER_COLORS.terras} stroke="white" strokeWidth="1.5" />
+                  </svg>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,0.65)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>
                     {t.name}
                   </span>
                 </div>
@@ -473,31 +453,34 @@ export default function MapPage() {
               closeOnClick={false}
               offset={10}
             >
-              <div style={{ padding: '10px 12px', minWidth: 160 }}>
-                <p style={{ fontWeight: 600, color: 'var(--color-sidebar-brand)', marginBottom: 4, fontSize: 14 }}>
+              <div style={{ padding: '12px 14px', minWidth: 180 }}>
+                <p style={{ fontWeight: 700, color: 'var(--color-sidebar-text, #fff)', marginBottom: 3, fontSize: 14, lineHeight: 1.3 }}>
                   {selectedTerras.name}
                 </p>
-                <p style={{ color: 'var(--color-sidebar-muted)', fontSize: 12, marginBottom: 6 }}>
+                <p style={{ color: 'var(--color-sidebar-muted)', fontSize: 11, marginBottom: 8, lineHeight: 1.4 }}>
                   {selectedTerras.address}
                 </p>
-                <p style={{ fontSize: 12, color: intensityColor(selectedTerras.intensity), marginBottom: selectedTerras.url ? 8 : 0 }}>
-                  ☀ {selectedTerras.intensity}/100
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: selectedTerras.url ? 10 : 0 }}>
+                  <span style={{ fontSize: 11, color: 'var(--color-sidebar-muted)' }}>Sun exposure</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: intensityColor(selectedTerras.intensity), background: `${intensityColor(selectedTerras.intensity)}22`, padding: '2px 8px', borderRadius: 6 }}>
+                    ☀ {selectedTerras.intensity}%
+                  </span>
+                </div>
                 {selectedTerras.url && (
                   <a
                     href={selectedTerras.url}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ fontSize: 12, color: 'var(--color-primary)', textDecoration: 'underline' }}
+                    style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--color-sidebar-brand)', background: 'rgba(229,135,10,0.15)', border: '1px solid rgba(229,135,10,0.3)', borderRadius: 6, padding: '5px 0', textDecoration: 'none' }}
                   >
-                    Visit website
+                    Visit website →
                   </a>
                 )}
               </div>
             </Popup>
           )}
 
-          {/* Restaurant markers — sky blue squares */}
+          {/* Restaurant markers — sky blue fork & knife badge */}
           {(layerFilter === 'restaurants' || layerFilter === 'all') &&
             restaurants.map((r) => (
               <Marker
@@ -510,28 +493,17 @@ export default function MapPage() {
                   setSelectedRestaurant(r);
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
-                  <div
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 3,
-                      background: MARKER_COLORS.restaurant,
-                      border: '2px solid rgba(255,255,255,0.5)',
-                      transition: 'transform 0.1s',
-                    }}
-                  />
-                  <span style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    color: '#fff',
-                    textShadow: '0 1px 3px rgba(0,0,0,0.9)',
-                    whiteSpace: 'nowrap',
-                    maxWidth: 90,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    lineHeight: 1,
-                  }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                  <svg width="22" height="24" viewBox="0 0 22 24" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+                    <rect x="0.75" y="0.75" width="20.5" height="22.5" rx="6" fill={MARKER_COLORS.restaurant} stroke="white" strokeWidth="1.5" />
+                    {/* fork */}
+                    <line x1="7.5" y1="5" x2="7.5" y2="9" stroke="white" strokeWidth="1.3" strokeLinecap="round" />
+                    <line x1="10" y1="5" x2="10" y2="9" stroke="white" strokeWidth="1.3" strokeLinecap="round" />
+                    <path d="M7.5 9 Q8.75 11 8.75 12.5 L8.75 19" stroke="white" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+                    {/* knife */}
+                    <path d="M14.5 5 L14.5 8.5 Q15.5 9.5 14.5 10.5 L14.5 19" stroke="white" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+                  </svg>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,0.65)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>
                     {r.name}
                   </span>
                 </div>
@@ -547,34 +519,37 @@ export default function MapPage() {
               closeOnClick={false}
               offset={10}
             >
-              <div style={{ padding: '10px 12px', minWidth: 160 }}>
-                <p style={{ fontWeight: 600, color: 'var(--color-sidebar-brand)', marginBottom: 4, fontSize: 14 }}>
+              <div style={{ padding: '12px 14px', minWidth: 180 }}>
+                <p style={{ fontWeight: 700, color: 'var(--color-sidebar-text, #fff)', marginBottom: 2, fontSize: 14, lineHeight: 1.3 }}>
                   {selectedRestaurant.name}
                 </p>
-                <p style={{ color: 'var(--color-sidebar-muted)', fontSize: 11, marginBottom: 2, textTransform: 'capitalize' }}>
+                <p style={{ color: MARKER_COLORS.restaurant, fontSize: 11, fontWeight: 600, marginBottom: 3, textTransform: 'capitalize' }}>
                   {selectedRestaurant.cuisine}
                 </p>
-                <p style={{ color: 'var(--color-sidebar-muted)', fontSize: 12, marginBottom: 6 }}>
+                <p style={{ color: 'var(--color-sidebar-muted)', fontSize: 11, marginBottom: 8, lineHeight: 1.4 }}>
                   {selectedRestaurant.address}
                 </p>
-                <p style={{ fontSize: 12, color: intensityColor(selectedRestaurant.intensity), marginBottom: selectedRestaurant.website ? 8 : 0 }}>
-                  ☀ {selectedRestaurant.intensity}/100
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: selectedRestaurant.website ? 10 : 0 }}>
+                  <span style={{ fontSize: 11, color: 'var(--color-sidebar-muted)' }}>Sun exposure</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: intensityColor(selectedRestaurant.intensity), background: `${intensityColor(selectedRestaurant.intensity)}22`, padding: '2px 8px', borderRadius: 6 }}>
+                    ☀ {selectedRestaurant.intensity}%
+                  </span>
+                </div>
                 {selectedRestaurant.website && (
                   <a
                     href={selectedRestaurant.website}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ fontSize: 12, color: 'var(--color-primary)', textDecoration: 'underline' }}
+                    style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 600, color: MARKER_COLORS.restaurant, background: `${MARKER_COLORS.restaurant}22`, border: `1px solid ${MARKER_COLORS.restaurant}44`, borderRadius: 6, padding: '5px 0', textDecoration: 'none' }}
                   >
-                    Visit website
+                    Visit website →
                   </a>
                 )}
               </div>
             </Popup>
           )}
 
-          {/* Event markers — terra red diamonds */}
+          {/* Event markers — terra red star */}
           {(layerFilter === 'events' || layerFilter === 'all') &&
             events.map((ev) => (
               <Marker
@@ -587,29 +562,17 @@ export default function MapPage() {
                   setSelectedEvent(ev);
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
-                  <div
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 2,
-                      background: MARKER_COLORS.event,
-                      border: '2px solid rgba(255,255,255,0.5)',
-                      transform: 'rotate(45deg)',
-                      transition: 'transform 0.1s',
-                    }}
-                  />
-                  <span style={{
-                    fontSize: 10,
-                    fontWeight: 600,
-                    color: '#fff',
-                    textShadow: '0 1px 3px rgba(0,0,0,0.9)',
-                    whiteSpace: 'nowrap',
-                    maxWidth: 90,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    lineHeight: 1,
-                  }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+                    <polygon
+                      points="12,2 14.4,8.8 21.5,9 16.3,13.6 18.4,20.5 12,16.9 5.6,20.5 7.7,13.6 2.5,9 9.6,8.8"
+                      fill={MARKER_COLORS.event}
+                      stroke="white"
+                      strokeWidth="1.3"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,0.65)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>
                     {ev.title}
                   </span>
                 </div>
@@ -625,26 +588,29 @@ export default function MapPage() {
               closeOnClick={false}
               offset={10}
             >
-              <div style={{ padding: '10px 12px', minWidth: 160 }}>
-                <p style={{ fontWeight: 600, color: 'var(--color-sidebar-brand)', marginBottom: 4, fontSize: 14 }}>
+              <div style={{ padding: '12px 14px', minWidth: 180 }}>
+                <p style={{ fontWeight: 700, color: 'var(--color-sidebar-text, #fff)', marginBottom: 3, fontSize: 14, lineHeight: 1.3 }}>
                   {selectedEvent.title}
                 </p>
-                <p style={{ color: 'var(--color-sidebar-muted)', fontSize: 12, marginBottom: 6 }}>
+                <p style={{ color: 'var(--color-sidebar-muted)', fontSize: 11, marginBottom: 8, lineHeight: 1.4 }}>
                   {selectedEvent.address}
                 </p>
                 {selectedEvent.intensity != null && (
-                  <p style={{ fontSize: 12, color: intensityColor(selectedEvent.intensity), marginBottom: selectedEvent.url ? 8 : 0 }}>
-                    ☀ {selectedEvent.intensity}/100
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: selectedEvent.url ? 10 : 0 }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-sidebar-muted)' }}>Sun exposure</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: intensityColor(selectedEvent.intensity), background: `${intensityColor(selectedEvent.intensity)}22`, padding: '2px 8px', borderRadius: 6 }}>
+                      ☀ {selectedEvent.intensity}%
+                    </span>
+                  </div>
                 )}
                 {selectedEvent.url && (
                   <a
                     href={selectedEvent.url}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ fontSize: 12, color: 'var(--color-primary)', textDecoration: 'underline' }}
+                    style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 600, color: MARKER_COLORS.event, background: `${MARKER_COLORS.event}22`, border: `1px solid ${MARKER_COLORS.event}44`, borderRadius: 6, padding: '5px 0', textDecoration: 'none' }}
                   >
-                    More info
+                    More info →
                   </a>
                 )}
               </div>
