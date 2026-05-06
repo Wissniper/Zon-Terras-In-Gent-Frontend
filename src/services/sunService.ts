@@ -21,13 +21,17 @@ export async function fetchSunForTerras(uuid: string, time?: string): Promise<Su
   return data;
 }
 
-export async function fetchSunForRestaurant(uuid: string): Promise<SunRestaurantResponse> {
-  const { data } = await api.get<SunRestaurantResponse>(`/sun/restaurant/${uuid}`);
+export async function fetchSunForRestaurant(uuid: string, time?: string): Promise<SunRestaurantResponse> {
+  const { data } = await api.get<SunRestaurantResponse>(`/sun/restaurant/${uuid}`, {
+    params: time ? { time } : undefined,
+  });
   return data;
 }
 
-export async function fetchSunForEvent(uuid: string): Promise<SunEventResponse> {
-  const { data } = await api.get<SunEventResponse>(`/sun/event/${uuid}`);
+export async function fetchSunForEvent(uuid: string, time?: string): Promise<SunEventResponse> {
+  const { data } = await api.get<SunEventResponse>(`/sun/event/${uuid}`, {
+    params: time ? { time } : undefined,
+  });
   return data;
 }
 
