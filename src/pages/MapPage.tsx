@@ -415,7 +415,11 @@ export default function MapPage() {
           style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
           mapLib={mapboxgl}
           mapStyle="mapbox://styles/mapbox/standard"
-          onLoad={() => setMapLoaded(true)}
+          onLoad={() => {
+            const map = mapRef.current?.getMap() as MapboxMap;
+            map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+            setMapLoaded(true);
+          }}
           maxBounds={[3.65, 50.99, 3.82, 51.12]}
           minZoom={12}
         >
@@ -432,17 +436,31 @@ export default function MapPage() {
                   setSelectedTerras(t);
                 }}
               >
-                <div
-                  style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: '50%',
-                    background: MARKER_COLORS.terras,
-                    border: '2px solid rgba(255,255,255,0.5)',
-                    cursor: 'pointer',
-                    transition: 'transform 0.1s',
-                  }}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
+                  <div
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      background: MARKER_COLORS.terras,
+                      border: '2px solid rgba(255,255,255,0.5)',
+                      transition: 'transform 0.1s',
+                    }}
+                  />
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: '#fff',
+                    textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+                    whiteSpace: 'nowrap',
+                    maxWidth: 90,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    lineHeight: 1,
+                  }}>
+                    {t.name}
+                  </span>
+                </div>
               </Marker>
             ))}
 
@@ -492,17 +510,31 @@ export default function MapPage() {
                   setSelectedRestaurant(r);
                 }}
               >
-                <div
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 3,
-                    background: MARKER_COLORS.restaurant,
-                    border: '2px solid rgba(255,255,255,0.5)',
-                    cursor: 'pointer',
-                    transition: 'transform 0.1s',
-                  }}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
+                  <div
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: 3,
+                      background: MARKER_COLORS.restaurant,
+                      border: '2px solid rgba(255,255,255,0.5)',
+                      transition: 'transform 0.1s',
+                    }}
+                  />
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: '#fff',
+                    textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+                    whiteSpace: 'nowrap',
+                    maxWidth: 90,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    lineHeight: 1,
+                  }}>
+                    {r.name}
+                  </span>
+                </div>
               </Marker>
             ))}
 
@@ -555,18 +587,32 @@ export default function MapPage() {
                   setSelectedEvent(ev);
                 }}
               >
-                <div
-                  style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 2,
-                    background: MARKER_COLORS.event,
-                    border: '2px solid rgba(255,255,255,0.5)',
-                    cursor: 'pointer',
-                    transform: 'rotate(45deg)',
-                    transition: 'transform 0.1s',
-                  }}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, cursor: 'pointer' }}>
+                  <div
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: 2,
+                      background: MARKER_COLORS.event,
+                      border: '2px solid rgba(255,255,255,0.5)',
+                      transform: 'rotate(45deg)',
+                      transition: 'transform 0.1s',
+                    }}
+                  />
+                  <span style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    color: '#fff',
+                    textShadow: '0 1px 3px rgba(0,0,0,0.9)',
+                    whiteSpace: 'nowrap',
+                    maxWidth: 90,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    lineHeight: 1,
+                  }}>
+                    {ev.title}
+                  </span>
+                </div>
               </Marker>
             ))}
 
