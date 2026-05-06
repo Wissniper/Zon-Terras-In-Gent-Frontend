@@ -14,8 +14,10 @@ interface SunEventResponse {
   event: { uuid: string; title: string; address: string; intensity: number };
 }
 
-export async function fetchSunForTerras(uuid: string): Promise<SunTerrasResponse> {
-  const { data } = await api.get<SunTerrasResponse>(`/sun/terras/${uuid}`);
+export async function fetchSunForTerras(uuid: string, time?: string): Promise<SunTerrasResponse> {
+  const { data } = await api.get<SunTerrasResponse>(`/sun/terras/${uuid}`, {
+    params: time ? { time } : undefined,
+  });
   return data;
 }
 

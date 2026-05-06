@@ -91,12 +91,13 @@ export interface SunData {
   locationType: 'Terras' | 'Restaurant' | 'Event';
   dateTime: string;
   intensity: number; // 0-100
+  shadowScore?: number;
   azimuth: number;   // radians
   altitude: number;  // radians
   goldenHour: GoldenHour;
   createdAt: string;
   updatedAt: string;
-  rawCloudCover?: number; 
+  rawCloudCover?: number;
   cloudFactor?: number;
 }
 
