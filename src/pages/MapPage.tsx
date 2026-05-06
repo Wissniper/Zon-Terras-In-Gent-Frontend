@@ -11,6 +11,7 @@ import { useTerrasData } from '../hooks/useTerrasData';
 import { useRestaurantsData } from '../hooks/useRestaurantsData';
 import { useEventsData } from '../hooks/useEventsData';
 import { useSunPosition } from '../hooks/useSunPosition';
+import { useTerrasSunData } from '../hooks/useTerrasSunData';
 import { intensityColor } from '../utils/intensity';
 import type { Terras, Restaurant, Event } from '../types';
 
@@ -339,6 +340,7 @@ export default function MapPage() {
   const { data: restaurants = [] } = useRestaurantsData();
   const { data: events = [] } = useEventsData();
   const sunPosition = useSunPosition();
+  const { shadowScore: terrasShadowScore } = useTerrasSunData(selectedTerras?.uuid ?? null);
   const location = useLocation();
 
   useEffect(() => {
@@ -466,6 +468,14 @@ export default function MapPage() {
                     ☀ {selectedTerras.intensity}%
                   </span>
                 </div>
+                {terrasShadowScore < 1.0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 4 }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-sidebar-muted)' }}>Shadow</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#9B8570' }}>
+                      🌑 {Math.round((1 - terrasShadowScore) * 100)}%
+                    </span>
+                  </div>
+                )}
                 {selectedTerras.url && (
                   <a
                     href={selectedTerras.url}
