@@ -106,11 +106,11 @@ function SunTimeline() {
   return (
     <div className="shrink-0 px-6 py-4" style={{ background: 'var(--color-sidebar)', borderTop: '1px solid var(--color-sidebar-border)' }}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium uppercase tracking-label" style={{ color: 'var(--color-sidebar-muted)' }}>
+        <p className="text-xs font-medium uppercase tracking-label" style={{ color: 'var(--color-sidebar-accent)' }}>
           Sun Timeline
         </p>
         <div className="flex items-center gap-2">
-          <span className="text-xs" style={{ color: 'var(--color-sidebar-muted)' }}>{displayDay}</span>
+          <span className="text-xs font-medium" style={{ color: 'var(--color-sidebar-accent)' }}>{displayDay}</span>
           <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--color-sidebar-brand)' }}>{displayTime}</span>
         </div>
       </div>
@@ -153,8 +153,8 @@ function SunTimeline() {
               left: `${m.pct}%`,
               transform: 'translateX(-50%)',
               fontSize: m.isDayBoundary ? 10 : 9,
-              fontWeight: m.isDayBoundary ? 600 : 400,
-              color: m.isDayBoundary ? 'var(--color-sidebar-muted)' : '#5A4030',
+              fontWeight: m.isDayBoundary ? 700 : 500,
+              color: m.isDayBoundary ? 'var(--color-sidebar-brand)' : 'var(--color-sidebar-accent)',
               lineHeight: 1,
             }}
           >
@@ -265,8 +265,8 @@ function SunTimelineVertical() {
               top: `${m.pct}%`,
               transform: 'translateY(-50%)',
               fontSize: m.isDayBoundary ? 9 : 8,
-              fontWeight: m.isDayBoundary ? 600 : 400,
-              color: m.isDayBoundary ? 'var(--color-sidebar-muted)' : '#5A4030',
+              fontWeight: m.isDayBoundary ? 700 : 500,
+              color: m.isDayBoundary ? 'var(--color-sidebar-brand)' : 'var(--color-sidebar-accent)',
             }}
           >
             {m.label}
@@ -283,14 +283,14 @@ function Legend() {
       className="rounded-2xl p-4 w-44"
       style={{ background: 'var(--color-map-overlay)', border: '1px solid var(--color-map-overlay-border)', backdropFilter: 'blur(12px)' }}
     >
-      <p className="text-xs font-medium uppercase tracking-label mb-3" style={{ color: 'var(--color-sidebar-muted)' }}>
+      <p className="text-xs font-semibold uppercase tracking-label mb-3" style={{ color: 'var(--color-sidebar-brand)' }}>
         Sun Intensity
       </p>
       <div
         className="h-2 rounded-full mb-2"
         style={{ background: 'linear-gradient(to right, #3A2A18, #F5DFA0, #E5870A)' }}
       />
-      <div className="flex justify-between text-xs mb-4" style={{ color: 'var(--color-sidebar-muted)' }}>
+      <div className="flex justify-between text-xs mb-4" style={{ color: 'var(--color-sidebar-accent)' }}>
         <span>Shade</span>
         <span>Full sun</span>
       </div>
@@ -302,12 +302,12 @@ function Legend() {
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-            <span className="text-xs" style={{ color: 'var(--color-sidebar-muted)' }}>{label}</span>
+            <span className="text-xs font-medium" style={{ color: 'var(--color-sidebar-text)' }}>{label}</span>
           </div>
         ))}
       </div>
-      <div className="pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <p className="text-xs font-medium uppercase tracking-label mb-2" style={{ color: 'var(--color-sidebar-muted)' }}>
+      <div className="pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.10)' }}>
+        <p className="text-xs font-semibold uppercase tracking-label mb-2" style={{ color: 'var(--color-sidebar-brand)' }}>
           Markers
         </p>
         <div className="space-y-1.5">
@@ -318,7 +318,7 @@ function Legend() {
           ].map(({ icon, color, label }) => (
             <div key={label} className="flex items-center gap-2">
               <span style={{ fontSize: 12, color, lineHeight: 1 }}>{icon}</span>
-              <span className="text-xs" style={{ color: 'var(--color-sidebar-muted)' }}>{label}</span>
+              <span className="text-xs font-medium" style={{ color: 'var(--color-sidebar-text)' }}>{label}</span>
             </div>
           ))}
         </div>
@@ -635,8 +635,8 @@ export default function MapPage() {
               style={{
                 padding: '8px 10px',
                 fontSize: 11,
-                fontWeight: layerFilter === f ? 600 : 400,
-                color: layerFilter === f ? 'var(--color-sidebar-brand)' : 'var(--color-sidebar-muted)',
+                fontWeight: layerFilter === f ? 700 : 500,
+                color: layerFilter === f ? 'var(--color-sidebar-brand)' : 'var(--color-sidebar-text)',
                 background: layerFilter === f ? 'rgba(229,135,10,0.2)' : 'transparent',
                 border: 'none',
                 cursor: 'pointer',
