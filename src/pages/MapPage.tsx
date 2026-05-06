@@ -468,14 +468,12 @@ export default function MapPage() {
                     ☀ {selectedTerras.intensity}%
                   </span>
                 </div>
-                {terrasShadowScore < 1.0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 4 }}>
-                    <span style={{ fontSize: 11, color: 'var(--color-sidebar-muted)' }}>Shadow</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#9B8570' }}>
-                      🌑 {Math.round((1 - terrasShadowScore) * 100)}%
-                    </span>
-                  </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 4 }}>
+                  <span style={{ fontSize: 11, color: 'var(--color-sidebar-muted)' }}>Shadow</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#9B8570' }}>
+                    🌑 {Math.round((1 - terrasShadowScore) * 100)}%
+                  </span>
+                </div>
                 {selectedTerras.url && (
                   <a
                     href={selectedTerras.url}
