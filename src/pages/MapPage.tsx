@@ -1,12 +1,10 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import type { MapRef, MarkerEvent } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { useLocation } from 'react-router-dom';
-import { useSelectedTime } from '../contexts/TimeContext';
-import { useWeatherData } from '../hooks/useWeatherData';
 import { useTerrasData } from '../hooks/useTerrasData';
 import { useRestaurantsData } from '../hooks/useRestaurantsData';
 import { useEventsData } from '../hooks/useEventsData';
@@ -16,6 +14,7 @@ import { useRestaurantSunData } from '../hooks/useRestaurantSunData';
 import { useEventSunData } from '../hooks/useEventSunData';
 import { intensityColor } from '../utils/intensity';
 import AtmosphericLighting from '../components/AtmosphericLighting';
+import SunTimeline from '../components/SunTimeline';
 import type { Terras, Restaurant, Event } from '../types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
@@ -36,262 +35,6 @@ const MARKER_COLORS = {
   restaurant: '#6DC2E8', /* sky   */
   event:      '#C4502A', /* terra */
 };
-
-const TOTAL_MINUTES = 48 * 60 - 1;
-
-function skyIntensity(hour: number): number {
-  if (hour < 5.5 || hour > 21.5) return 0;
-  const peak = 13;
-  const halfSpan = 8;
-  return Math.max(0, Math.round(100 - ((hour - peak) / halfSpan) ** 2 * 100));
-}
-
-function SunTimeline() {
-  const { selectedTime, setSelectedTime } = useSelectedTime();
-  const { data: weather } = useWeatherData();
-
-  const todayMidnight = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d.getTime();
-  }, []);
-
-  const selected = new Date(selectedTime);
-  const selectedMinutes = Math.round(
-    Math.min(TOTAL_MINUTES, Math.max(0, (selected.getTime() - todayMidnight) / 60000))
-  );
-
-  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const minutes = Number(e.target.value);
-    setSelectedTime(new Date(todayMidnight + minutes * 60000).toISOString());
-  }
-
-  const cloudFactor = (100 - (weather?.cloudCover ?? 0)) / 100;
-  const gradient = useMemo(() => {
-    const stops: string[] = [];
-    for (let m = 0; m <= TOTAL_MINUTES; m += 60) {
-      const h = (m / 60) % 24;
-      const sky = skyIntensity(h) * cloudFactor;
-      const pct = ((m / TOTAL_MINUTES) * 100).toFixed(1);
-      const color = sky > 60 ? '#F5AC32' : sky > 30 ? '#F5DFA0' : sky > 5 ? '#D4C4A8' : '#2A2018';
-      stops.push(`${color} ${pct}%`);
-    }
-    return `linear-gradient(to right, ${stops.join(', ')})`;
-  }, [cloudFactor]);
-
-  const selectedDate = new Date(todayMidnight + selectedMinutes * 60000);
-  const displayTime = selectedDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  const displayDay = selectedMinutes < 1440 ? 'Today' : 'Tomorrow';
-
-  const marks = useMemo(() => {
-    const result: { label: string; pct: number; isDayBoundary: boolean }[] = [];
-    for (let m = 0; m <= TOTAL_MINUTES; m += 180) {
-      const h = (m / 60) % 24;
-      const day = m < 1440 ? 0 : 1;
-      if (m === 0 || m === 1440 || m % 360 === 0) {
-        result.push({
-          label: day === 0 && m === 0 ? 'Today' : day === 1 && m === 1440 ? 'Tomorrow' : `${String(h).padStart(2, '0')}:00`,
-          pct: (m / TOTAL_MINUTES) * 100,
-          isDayBoundary: m === 0 || m === 1440,
-        });
-      } else {
-        result.push({
-          label: `${String(h).padStart(2, '0')}:00`,
-          pct: (m / TOTAL_MINUTES) * 100,
-          isDayBoundary: false,
-        });
-      }
-    }
-    return result;
-  }, []);
-
-  const thumbPct = (selectedMinutes / TOTAL_MINUTES) * 100;
-
-  return (
-    <div className="shrink-0 px-6 py-4" style={{ background: 'var(--color-sidebar)', borderTop: '1px solid var(--color-sidebar-border)' }}>
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium uppercase tracking-label" style={{ color: 'var(--color-sidebar-accent)' }}>
-          Sun Timeline
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setSelectedTime(new Date().toISOString())}
-            style={{ fontSize: 10, fontWeight: 700, color: 'var(--color-sidebar-brand)', background: 'rgba(229,135,10,0.15)', border: '1px solid rgba(229,135,10,0.4)', borderRadius: 6, padding: '2px 7px', cursor: 'pointer', lineHeight: 1.6 }}
-          >
-            Now
-          </button>
-          <span className="text-xs font-medium" style={{ color: 'var(--color-sidebar-accent)' }}>{displayDay}</span>
-          <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--color-sidebar-brand)' }}>{displayTime}</span>
-        </div>
-      </div>
-
-      <div className="relative">
-        <div
-          className="absolute inset-y-0 left-0 right-0 my-auto rounded-full pointer-events-none"
-          style={{ height: 8, background: gradient, top: '50%', transform: 'translateY(-50%)', opacity: 0.7 }}
-        />
-        <div
-          className="absolute my-auto rounded-l-full pointer-events-none"
-          style={{
-            height: 8,
-            top: '50%',
-            transform: 'translateY(-50%)',
-            left: 0,
-            width: `${thumbPct}%`,
-            background: 'linear-gradient(to right, #7A5010, #E5870A)',
-            opacity: 0.9,
-          }}
-        />
-        <input
-          type="range"
-          min={0}
-          max={TOTAL_MINUTES}
-          step={15}
-          value={selectedMinutes}
-          onChange={onChange}
-          className="sun-slider relative"
-          style={{ background: 'transparent' }}
-        />
-      </div>
-
-      <div className="relative mt-2" style={{ height: 16 }}>
-        {marks.map((m) => (
-          <span
-            key={m.pct}
-            className="absolute text-center pointer-events-none"
-            style={{
-              left: `${m.pct}%`,
-              transform: 'translateX(-50%)',
-              fontSize: m.isDayBoundary ? 10 : 9,
-              fontWeight: m.isDayBoundary ? 700 : 500,
-              color: m.isDayBoundary ? 'var(--color-sidebar-brand)' : 'var(--color-sidebar-accent)',
-              lineHeight: 1,
-            }}
-          >
-            {m.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SunTimelineVertical() {
-  const { selectedTime, setSelectedTime } = useSelectedTime();
-  const { data: weather } = useWeatherData();
-
-  const todayMidnight = useMemo(() => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d.getTime();
-  }, []);
-
-  const selected = new Date(selectedTime);
-  const selectedMinutes = Math.round(
-    Math.min(TOTAL_MINUTES, Math.max(0, (selected.getTime() - todayMidnight) / 60000))
-  );
-
-  function onChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const minutes = Number(e.target.value);
-    setSelectedTime(new Date(todayMidnight + minutes * 60000).toISOString());
-  }
-
-  const cloudFactor = (100 - (weather?.cloudCover ?? 0)) / 100;
-  const gradient = useMemo(() => {
-    const stops: string[] = [];
-    for (let m = 0; m <= TOTAL_MINUTES; m += 60) {
-      const h = (m / 60) % 24;
-      const sky = skyIntensity(h) * cloudFactor;
-      const pct = ((m / TOTAL_MINUTES) * 100).toFixed(1);
-      const color = sky > 60 ? '#F5AC32' : sky > 30 ? '#F5DFA0' : sky > 5 ? '#D4C4A8' : '#2A2018';
-      stops.push(`${color} ${pct}%`);
-    }
-    return `linear-gradient(to bottom, ${stops.join(', ')})`;
-  }, [cloudFactor]);
-
-  const marks = useMemo(() => {
-    const result: { label: string; pct: number; isDayBoundary: boolean }[] = [];
-    for (let m = 0; m <= TOTAL_MINUTES; m += 180) {
-      const h = (m / 60) % 24;
-      const day = m < 1440 ? 0 : 1;
-      if (m === 0 || m === 1440 || m % 360 === 0) {
-        result.push({
-          label: day === 0 && m === 0 ? 'Today' : day === 1 && m === 1440 ? 'Tmrw' : `${String(h).padStart(2, '0')}:00`,
-          pct: (m / TOTAL_MINUTES) * 100,
-          isDayBoundary: m === 0 || m === 1440,
-        });
-      } else {
-        result.push({
-          label: `${String(h).padStart(2, '0')}:00`,
-          pct: (m / TOTAL_MINUTES) * 100,
-          isDayBoundary: false,
-        });
-      }
-    }
-    return result;
-  }, []);
-
-  const thumbPct = (selectedMinutes / TOTAL_MINUTES) * 100;
-
-  return (
-    <div className="flex flex-1 min-h-0 px-2 py-3 gap-1 select-none" style={{ background: 'var(--color-sidebar)', position: 'relative' }}>
-      <button
-        onClick={() => setSelectedTime(new Date().toISOString())}
-        style={{ position: 'absolute', top: 8, right: 6, fontSize: 9, fontWeight: 700, color: 'var(--color-sidebar-brand)', background: 'rgba(229,135,10,0.15)', border: '1px solid rgba(229,135,10,0.4)', borderRadius: 5, padding: '2px 5px', cursor: 'pointer', lineHeight: 1.6, zIndex: 10 }}
-      >
-        Now
-      </button>
-      <div className="relative flex justify-center w-7 flex-shrink-0 self-stretch">
-        <div
-          className="absolute rounded-full pointer-events-none"
-          style={{ width: 6, top: 0, bottom: 0, left: '50%', transform: 'translateX(-50%)', background: gradient, opacity: 0.7 }}
-        />
-        <div
-          className="absolute rounded-t-full pointer-events-none"
-          style={{
-            width: 6, top: 0, height: `${thumbPct}%`,
-            left: '50%', transform: 'translateX(-50%)',
-            background: 'linear-gradient(to bottom, #7A5010, #E5870A)', opacity: 0.9,
-          }}
-        />
-        <input
-          type="range"
-          min={0}
-          max={TOTAL_MINUTES}
-          step={15}
-          value={selectedMinutes}
-          onChange={onChange}
-          className="sun-slider absolute"
-          style={{
-            height: 28,
-            top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%) rotate(-90deg)',
-            background: 'transparent', cursor: 'pointer',
-            width: 'calc(100vh - 80px)',
-          }}
-        />
-      </div>
-
-      <div className="relative flex-1 self-stretch">
-        {marks.map((m) => (
-          <span
-            key={m.pct}
-            className="absolute pointer-events-none leading-none left-1"
-            style={{
-              top: `${m.pct}%`,
-              transform: 'translateY(-50%)',
-              fontSize: m.isDayBoundary ? 9 : 8,
-              fontWeight: m.isDayBoundary ? 700 : 500,
-              color: m.isDayBoundary ? 'var(--color-sidebar-brand)' : 'var(--color-sidebar-accent)',
-            }}
-          >
-            {m.label}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 function Legend() {
   return (
@@ -676,13 +419,13 @@ export default function MapPage() {
               </svg>
             </button>
           </div>
-          <SunTimelineVertical />
+          <SunTimeline orientation="vertical" />
         </div>
       </div>
 
       {/* Timeline bar — desktop */}
       <div className="hidden md:block">
-        <SunTimeline />
+        <SunTimeline orientation="horizontal" />
       </div>
     </div>
   );
