@@ -7,12 +7,13 @@ import TerrasDetailPage from './pages/TerrasDetailPage';
 import RestaurantDetailPage from './pages/RestaurantDetailPage';
 import EventDetailPage from './pages/EventDetailPage';
 import SearchPage from './pages/SearchPage';
+import { Navigate } from 'react-router-dom';
 
 function MobileHeader({ onOpen }: { onOpen: () => void }) {
   const location = useLocation();
   const title =
     location.pathname === '/' ? 'Map' :
-    location.pathname === '/search' ? 'Search' :
+    location.pathname === '/discover' || location.pathname === '/search' ? 'Discover' :
     location.pathname.startsWith('/terrasen') ? 'Terrace' :
     location.pathname.startsWith('/restaurants') ? 'Restaurant' :
     location.pathname.startsWith('/events') ? 'Event' : 'Sun Seeker';
@@ -74,7 +75,8 @@ function Layout() {
           <Route path="/terrasen/:id" element={<TerrasDetailPage />} />
           <Route path="/restaurants/:id" element={<RestaurantDetailPage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />
-          <Route path="/search" element={<SearchPage />} />
+          <Route path="/discover" element={<SearchPage />} />
+          <Route path="/search"   element={<Navigate to="/discover" replace />} />
         </Routes>
       </main>
 

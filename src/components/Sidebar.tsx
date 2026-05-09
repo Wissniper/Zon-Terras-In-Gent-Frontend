@@ -4,32 +4,39 @@ import { useQuery } from '@tanstack/react-query';
 import { useSelectedTime } from '../contexts/TimeContext';
 import { useWeatherData } from '../hooks/useWeatherData';
 import { searchTerras, uuidFromHydraId } from '../services/terrasService';
-import { intensityColor } from '../utils/intensity';
+import { intensityColor, intensityLabel } from '../utils/intensity';
 
 function useTheme() {
-  const [dark, setDark] = useState(() => {
-    return document.documentElement.getAttribute('data-theme') === 'dark';
-  });
-
+  const [dark, setDark] = useState(() =>
+    document.documentElement.getAttribute('data-theme') === 'dark',
+  );
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     localStorage.setItem('theme', dark ? 'dark' : 'light');
   }, [dark]);
-
-  return { dark, toggle: () => setDark(d => !d) };
+  return { dark, toggle: () => setDark((d) => !d) };
 }
 
-function SunIcon({ size = 20 }: { size?: number }) {
+function SunMark({ size = 22 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" strokeLinecap="round">
-      <circle cx="12" cy="12" r="4.5" stroke="var(--color-gold)" strokeWidth="1.8" fill="rgba(245,172,50,0.15)" />
-      {[0,45,90,135,180,225,270,315].map((deg, i) => {
-        const r = Math.PI * deg / 180;
-        const x1 = 12 + Math.cos(r) * 6.5;
-        const y1 = 12 + Math.sin(r) * 6.5;
-        const x2 = 12 + Math.cos(r) * 8.5;
-        const y2 = 12 + Math.sin(r) * 8.5;
-        return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--color-gold)" strokeWidth="1.8" />;
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <defs>
+        <radialGradient id={`sb-sun-${size}`} cx="35%" cy="35%" r="65%">
+          <stop offset="0%"   stopColor="#FFD075" />
+          <stop offset="100%" stopColor="#E5870A" />
+        </radialGradient>
+      </defs>
+      <circle cx="12" cy="12" r="5.2" fill={`url(#sb-sun-${size})`} />
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((deg) => {
+        const r = (deg * Math.PI) / 180;
+        return (
+          <line
+            key={deg}
+            x1={12 + Math.cos(r) * 7.8}  y1={12 + Math.sin(r) * 7.8}
+            x2={12 + Math.cos(r) * 10.5} y2={12 + Math.sin(r) * 10.5}
+            stroke="#FFD9A8" strokeWidth="1.4" strokeLinecap="round"
+          />
+        );
       })}
     </svg>
   );
@@ -39,7 +46,7 @@ function WeatherCard() {
   const { data: weather, isLoading } = useWeatherData();
 
   if (isLoading) {
-    return <div className="h-20 rounded-xl mx-3 animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />;
+    return <div className="mx-3 h-24 rounded-2xl shimmer" />;
   }
   if (!weather) return null;
 
@@ -50,26 +57,39 @@ function WeatherCard() {
 
   return (
     <div
-      className="mx-3 rounded-xl px-4 py-3.5"
-      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)' }}
+      className="mx-3 rounded-2xl px-4 py-4"
+      style={{
+        background: 'linear-gradient(135deg, rgba(255,217,168,0.08), rgba(255,184,118,0.04))',
+        border: '1px solid rgba(255,217,168,0.16)',
+      }}
     >
-      <p className="text-xs font-medium uppercase tracking-label mb-2.5" style={{ color: 'var(--color-sidebar-muted)' }}>
-        Ghent Weather
+      <p className="eyebrow mb-2.5" style={{ color: 'var(--color-sidebar-muted)' }}>
+        Right now
       </p>
       <div className="flex items-end justify-between">
         <div>
-          <span className="font-display" style={{ fontSize: '2.4rem', lineHeight: 1, color: '#F5AC32', letterSpacing: '-0.02em' }}>
+          <span className="font-display tabular-nums" style={{
+            fontSize: '2.6rem', lineHeight: 1, color: 'var(--color-sidebar-brand)',
+            letterSpacing: '-0.03em',
+          }}>
             {Math.round(weather.temperature)}°
           </span>
-          <p className="text-xs mt-1" style={{ color: 'var(--color-sidebar-muted)' }}>{cloudLabel}</p>
+          <p className="text-xs mt-1.5" style={{ color: 'var(--color-sidebar-text)' }}>{cloudLabel}</p>
         </div>
-        <div className="text-right space-y-1 pb-1">
-          <p className="text-xs" style={{ color: 'var(--color-sidebar-muted)' }}>
-            <span className="font-medium" style={{ color: 'var(--color-sidebar-accent)' }}>{Math.round(weather.windspeed)}</span> km/h
-          </p>
-          <p className="text-xs" style={{ color: 'var(--color-sidebar-muted)' }}>
-            <span className="font-medium" style={{ color: 'var(--color-sidebar-accent)' }}>{Math.round(weather.cloudCover)}</span>% clouds
-          </p>
+        <div className="text-right space-y-1.5 pb-1">
+          <div className="flex items-center gap-1.5 justify-end" style={{ color: 'var(--color-sidebar-muted)' }}>
+            <span className="text-[11px]">Wind</span>
+            <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--color-sidebar-accent)' }}>
+              {Math.round(weather.windspeed)}
+            </span>
+            <span className="text-[10px]">km/h</span>
+          </div>
+          <div className="flex items-center gap-1.5 justify-end" style={{ color: 'var(--color-sidebar-muted)' }}>
+            <span className="text-[11px]">Cover</span>
+            <span className="text-xs font-semibold tabular-nums" style={{ color: 'var(--color-sidebar-accent)' }}>
+              {Math.round(weather.cloudCover)}%
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -83,44 +103,54 @@ function TopTerraces() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const items = data?.['hydra:member'] ?? [];
+  const items = (data?.['hydra:member'] ?? []).slice(0, 6);
 
   return (
     <div className="mx-3 flex-1 min-h-0 flex flex-col">
-      <p className="text-xs font-medium uppercase tracking-label mb-2 px-0.5" style={{ color: 'var(--color-sidebar-muted)' }}>
-        Top Sunny
+      <p className="eyebrow mb-2.5 px-1" style={{ color: 'var(--color-sidebar-muted)' }}>
+        Sunniest now
       </p>
       {isLoading && (
         <div className="space-y-1.5">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-11 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.05)' }} />
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-12 rounded-xl shimmer" />
           ))}
         </div>
       )}
       {!isLoading && items.length === 0 && (
-        <p className="text-xs px-0.5" style={{ color: 'var(--color-sidebar-muted)' }}>No sunny terraces right now.</p>
+        <p className="text-xs px-1" style={{ color: 'var(--color-sidebar-muted)' }}>
+          No sunny terraces right now.
+        </p>
       )}
-      <div className="space-y-0.5 overflow-y-auto flex-1 min-h-0">
-        {items.map((t) => (
-          <Link
-            key={t.uuid}
-            to={`/terrasen/${uuidFromHydraId(t['@id'])}`}
-            className="flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors group"
-            style={{ color: 'inherit' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          >
-            <div className="min-w-0 mr-2">
-              <p className="text-xs font-medium truncate" style={{ color: 'var(--color-sidebar-text)' }}>
-                {t.name}
-              </p>
-              <p className="text-xs truncate mt-0.5" style={{ color: 'var(--color-sidebar-muted)', fontSize: '10px' }}>{t.address}</p>
-            </div>
-            <span className="text-xs font-semibold shrink-0 tabular-nums" style={{ color: intensityColor(t.intensity) }}>
-              {t.intensity}%
-            </span>
-          </Link>
-        ))}
+      <div className="space-y-0.5 overflow-y-auto flex-1 min-h-0 -mx-1 px-1">
+        {items.map((t) => {
+          const colour = intensityColor(t.intensity);
+          return (
+            <Link
+              key={t.uuid}
+              to={`/terrasen/${uuidFromHydraId(t['@id'])}`}
+              className="flex items-center justify-between px-2.5 py-2.5 rounded-xl group transition-colors"
+              style={{ color: 'inherit' }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,217,168,0.08)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+            >
+              <div className="min-w-0 mr-2">
+                <p className="text-xs font-medium truncate" style={{ color: 'var(--color-sidebar-text)' }}>
+                  {t.name}
+                </p>
+                <p className="truncate mt-0.5" style={{ color: 'var(--color-sidebar-muted)', fontSize: 10 }}>
+                  {intensityLabel(t.intensity)}
+                </p>
+              </div>
+              <div
+                className="text-[11px] font-bold tabular-nums shrink-0 px-2 py-0.5 rounded-md"
+                style={{ color: colour, background: `${colour}1f` }}
+              >
+                {t.intensity}%
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
@@ -131,24 +161,24 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const { dark, toggle } = useTheme();
 
   const formatted = new Date(selectedTime).toLocaleString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
+    weekday: 'short', day: 'numeric', month: 'short',
+    hour: '2-digit', minute: '2-digit',
   });
 
   return (
     <aside
-      className="shrink-0 w-56 h-full flex flex-col"
-      style={{ background: 'var(--color-sidebar)', borderRight: '1px solid var(--color-sidebar-border)' }}
+      className="shrink-0 w-60 h-full flex flex-col"
+      style={{
+        background: 'linear-gradient(180deg, var(--color-sidebar) 0%, var(--color-sidebar-surface) 100%)',
+        borderRight: '1px solid var(--color-sidebar-border)',
+      }}
     >
       {/* Brand */}
-      <div className="flex flex-col items-center gap-3 px-5 pt-8 pb-6 relative">
+      <div className="flex flex-col items-center gap-3 px-5 pt-7 pb-6 relative">
         {onClose && (
           <button
             onClick={onClose}
-            className="md:hidden absolute top-3 right-3 p-2 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+            className="md:hidden absolute top-3 right-3 p-2 rounded-lg min-w-[36px] min-h-[36px] flex items-center justify-center"
             style={{ color: 'var(--color-sidebar-muted)' }}
             aria-label="Close menu"
           >
@@ -159,25 +189,19 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
           </button>
         )}
 
-        {/* Theme toggle */}
         <button
           onClick={toggle}
-          className="absolute top-3 left-3 p-2 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+          className="absolute top-3 left-3 p-2 rounded-lg min-w-[36px] min-h-[36px] flex items-center justify-center transition-colors"
           style={{ color: 'var(--color-sidebar-muted)' }}
           aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-          title={dark ? 'Light mode' : 'Dark mode'}
         >
           {dark ? (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="5" />
-              <line x1="12" y1="1" x2="12" y2="3" />
-              <line x1="12" y1="21" x2="12" y2="23" />
-              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-              <line x1="1" y1="12" x2="3" y2="12" />
-              <line x1="21" y1="12" x2="23" y2="12" />
-              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              {[0,45,90,135,180,225,270,315].map(deg => {
+                const r = (deg*Math.PI)/180;
+                return <line key={deg} x1={12+Math.cos(r)*7} y1={12+Math.sin(r)*7} x2={12+Math.cos(r)*9.5} y2={12+Math.sin(r)*9.5} />
+              })}
             </svg>
           ) : (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -187,76 +211,75 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
         </button>
 
         <div
-          className="w-11 h-11 rounded-2xl flex items-center justify-center sun-pulse"
-          style={{ background: 'rgba(229,135,10,0.14)', border: '1px solid rgba(229,135,10,0.25)' }}
+          className="w-12 h-12 rounded-2xl flex items-center justify-center sun-pulse"
+          style={{
+            background: 'rgba(255,217,168,0.10)',
+            border: '1px solid rgba(255,217,168,0.20)',
+          }}
         >
-          <SunIcon size={22} />
+          <SunMark size={24} />
         </div>
 
         <div className="text-center">
-          <p className="font-display text-sm font-semibold" style={{ color: 'var(--color-sidebar-brand)', letterSpacing: '0.01em' }}>
+          <p className="font-display font-semibold" style={{
+            color: 'var(--color-sidebar-brand)',
+            fontSize: '0.95rem', letterSpacing: '0.005em',
+          }}>
             Sun Seeker
           </p>
-          <p className="text-xs mt-0.5" style={{ color: 'var(--color-sidebar-muted)' }}>Ghent Edition</p>
+          <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-sidebar-muted)' }}>
+            Ghent edition
+          </p>
         </div>
       </div>
 
-      {/* Divider */}
-      <div className="mx-4 mb-4" style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+      <div className="mx-4 mb-3" style={{ height: '1px', background: 'rgba(255,217,168,0.10)' }} />
 
-      {/* Nav links */}
-      <nav className="px-3 flex flex-col gap-0.5 mb-5">
-        <NavLink
-          to="/"
-          end
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'active-nav' : ''}`
-          }
-          style={({ isActive }) => ({
-            color: isActive ? 'var(--color-gold)' : 'var(--color-sidebar-muted)',
-            background: isActive ? 'rgba(229,135,10,0.15)' : 'transparent',
-          })}
-          onClick={onClose}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="3 11 12 2 21 11 21 22 15 22 15 15 9 15 9 22 3 22 3 11" />
-          </svg>
-          Map
-        </NavLink>
-        <NavLink
-          to="/search"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-          style={({ isActive }) => ({
-            color: isActive ? 'var(--color-gold)' : 'var(--color-sidebar-muted)',
-            background: isActive ? 'rgba(229,135,10,0.15)' : 'transparent',
-          })}
-          onClick={onClose}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          Search
-        </NavLink>
+      {/* Nav */}
+      <nav className="px-3 flex flex-col gap-0.5 mb-4">
+        {[
+          { to: '/',         end: true,  label: 'Map',      icon: <polygon points="3 11 12 2 21 11 21 22 15 22 15 15 9 15 9 22 3 22 3 11" /> },
+          { to: '/discover', end: false, label: 'Discover', icon: <><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></> },
+        ].map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={onClose}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
+            style={({ isActive }) => isActive ? {
+              color: 'var(--color-sidebar-brand)',
+              background: 'rgba(255,217,168,0.13)',
+              border: '1px solid rgba(255,217,168,0.18)',
+            } : {
+              color: 'var(--color-sidebar-muted)',
+              border: '1px solid transparent',
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {item.icon}
+            </svg>
+            {item.label}
+          </NavLink>
+        ))}
       </nav>
 
-      {/* Divider */}
-      <div className="mx-4 mb-4" style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+      <div className="mx-4 mb-4" style={{ height: '1px', background: 'rgba(255,217,168,0.10)' }} />
 
-      {/* Weather */}
       <WeatherCard />
 
-      <div className="mx-4 my-4" style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
+      <div className="mx-4 my-4" style={{ height: '1px', background: 'rgba(255,217,168,0.10)' }} />
 
-      {/* Top terraces */}
       <TopTerraces />
 
-      {/* Time display */}
-      <div className="px-4 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        <p className="text-xs font-medium uppercase tracking-label mb-1" style={{ color: 'var(--color-sidebar-muted)' }}>
-          Selected Time
+      {/* Footer time */}
+      <div className="px-4 py-4" style={{ borderTop: '1px solid rgba(255,217,168,0.10)' }}>
+        <p className="eyebrow mb-1" style={{ color: 'var(--color-sidebar-muted)' }}>
+          Selected time
         </p>
-        <p className="text-xs font-semibold" style={{ color: 'var(--color-sidebar-accent)' }}>{formatted}</p>
+        <p className="text-xs font-semibold" style={{ color: 'var(--color-sidebar-accent)' }}>
+          {formatted}
+        </p>
       </div>
     </aside>
   );

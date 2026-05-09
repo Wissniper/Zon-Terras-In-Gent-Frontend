@@ -2,97 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Design Tokens ─ Light Mode (Option B: Sky) ─── */
+/* ──────────────────────────────────────────────────────────────────────────
+   Sun Seeker — Lifestyle palette
+   Warm cream backgrounds, terracotta brand, dusty sky accent, sage trim.
+   Designed to feel like a sun-soaked terrace at golden hour, not a dashboard.
+   ────────────────────────────────────────────────────────────────────────── */
+
 :root {
-  /* Surfaces */
-  --color-bg:          #FFFFFF;
+  /* Surfaces — warm cream stack */
+  --color-bg:          #FBF6EC;
   --color-surface:     #FFFFFF;
-  --color-surface-2:   #F5F9FF;
-  --color-surface-3:   #EAF1FB;
-  --color-border:      #D1E2F5;
-  --color-track:       #D1E2F5;
+  --color-surface-2:   #F5EBD9;
+  --color-surface-3:   #EDDFC6;
+  --color-border:      #E8D9BD;
+  --color-track:       #E8D9BD;
 
-  /* Brand */
-  --color-primary:        #1D55D4;
-  --color-primary-light:  #EBF2FF;
-  --color-primary-border: rgba(29,85,212,0.2);
-  --color-gold:      #F5AC32;
-  --color-sky:       #0284C7;
-  --color-sky-light: #E0F2FE;
-  --color-terra:     #DC2626;
+  /* Brand — terracotta + sun gold */
+  --color-primary:        #C4502A;
+  --color-primary-light:  #FBE4D5;
+  --color-primary-border: rgba(196,80,42,0.25);
+  --color-gold:           #E5870A;
+  --color-blush:          #F5D5C3;
+  --color-cream:          #FBF6EC;
+  --color-sage:           #8FA382;
 
-  /* Text */
-  --color-text-1: #080F1E;
-  --color-text-2: #1E3252;
-  --color-text-3: #445A7A;
+  /* Accents kept for restaurant / event differentiation, dialled to warm */
+  --color-sky:        #5C8FA8;
+  --color-sky-light:  #DEEAF1;
+  --color-terra:      #A03D1F;
 
-  /* Sidebar — deep navy in light mode */
-  --color-sidebar:         #0F2756;
-  --color-sidebar-surface: #162F6A;
-  --color-sidebar-border:  #1E3A80;
-  --color-sidebar-muted:   #5C7CB8;
-  --color-sidebar-accent:  #8FACDC;
-  --color-sidebar-text:    #A8C0E8;
-  --color-sidebar-brand:   #C8D8F8;
+  /* Text — warm umber stack */
+  --color-text-1: #2A1810;
+  --color-text-2: #5A4632;
+  --color-text-3: #8B7758;
 
-  /* Map overlay glass */
-  --color-map-overlay: rgba(15,39,86,0.90);
-  --color-map-overlay-border: rgba(255,255,255,0.10);
+  /* Sidebar / branded dark panel — espresso */
+  --color-sidebar:         #2A1810;
+  --color-sidebar-surface: #3A2418;
+  --color-sidebar-border:  #4A3020;
+  --color-sidebar-muted:   #B89C7A;
+  --color-sidebar-accent:  #E0C9A8;
+  --color-sidebar-text:    #F0E0C5;
+  --color-sidebar-brand:   #FFD9A8;
 
-  /* Shadows */
-  --shadow-card:       0 2px 12px rgba(15,39,86,0.07);
-  --shadow-card-hover: 0 6px 24px rgba(37,99,235,0.16);
-  --shadow-soft:       0 2px 16px rgba(15,39,86,0.08);
-  --shadow-float:      0 8px 32px rgba(15,39,86,0.11);
-  --shadow-amber:      0 4px 24px rgba(229,135,10,0.22);
-  --shadow-amber-lg:   0 8px 40px rgba(229,135,10,0.30);
+  /* Map overlay glass — warm brown tint */
+  --color-map-overlay:        rgba(42,24,16,0.84);
+  --color-map-overlay-border: rgba(255,217,168,0.18);
+
+  /* Shadows — warm umber, not cold gray */
+  --shadow-card:       0 4px 20px rgba(140,80,40,0.07);
+  --shadow-card-hover: 0 10px 32px rgba(196,80,42,0.16);
+  --shadow-soft:       0 2px 16px rgba(140,80,40,0.08);
+  --shadow-float:      0 12px 40px rgba(140,80,40,0.14);
+  --shadow-amber:      0 6px 28px rgba(229,135,10,0.30);
+  --shadow-amber-lg:   0 12px 48px rgba(229,135,10,0.36);
+
+  /* Time-of-day gradients — used by atmospheric backgrounds & timeline */
+  --gradient-dawn:   linear-gradient(135deg, #FFD9A8 0%, #F5D5C3 50%, #E8B89A 100%);
+  --gradient-noon:   linear-gradient(135deg, #FBE4D5 0%, #FBF6EC 50%, #DEEAF1 100%);
+  --gradient-dusk:   linear-gradient(135deg, #E8855A 0%, #C4502A 60%, #6B3A2A 100%);
+  --gradient-night:  linear-gradient(135deg, #2A1810 0%, #1A0F08 100%);
+  --gradient-golden: linear-gradient(135deg, #FFD075 0%, #E5870A 50%, #C4502A 100%);
 }
 
-/* ── Design Tokens ─ Dark Mode (warm amber aesthetic) */
+/* ── Dark Mode — moonlit terras ───────────────────── */
 [data-theme="dark"] {
-  /* Surfaces */
-  --color-bg:          #1A1005;
-  --color-surface:     #251708;
-  --color-surface-2:   #2E1E0A;
-  --color-surface-3:   #0D0905;
-  --color-border:      #3A250D;
-  --color-track:       #3A250D;
+  --color-bg:          #1A0F08;
+  --color-surface:     #2A1810;
+  --color-surface-2:   #3A2418;
+  --color-surface-3:   #1A0F08;
+  --color-border:      #4A3020;
+  --color-track:       #4A3020;
 
-  /* Brand */
-  --color-primary:        #E5870A;
-  --color-primary-light:  rgba(229,135,10,0.15);
-  --color-primary-border: rgba(229,135,10,0.28);
-  --color-gold:      #F5AC32;
-  --color-sky:       #6DC2E8;
-  --color-sky-light: rgba(109,194,232,0.13);
-  --color-terra:     #C4502A;
+  --color-primary:        #FFB876;
+  --color-primary-light:  rgba(255,184,118,0.14);
+  --color-primary-border: rgba(255,184,118,0.32);
+  --color-gold:           #FFD075;
+  --color-blush:          #4A2A1F;
+  --color-cream:          #2A1810;
+  --color-sage:           #B0C29A;
 
-  /* Text — warm and fully visible */
-  --color-text-1: #F0E6D3;
-  --color-text-2: #C9A880;
-  --color-text-3: #9B8570;
+  --color-sky:        #8FB8D0;
+  --color-sky-light:  rgba(143,184,208,0.13);
+  --color-terra:      #E8855A;
 
-  /* Sidebar — very dark warm brown */
-  --color-sidebar:         #0D0905;
-  --color-sidebar-surface: #150F08;
-  --color-sidebar-border:  #1F1509;
+  --color-text-1: #F8EDD8;
+  --color-text-2: #D4B896;
+  --color-text-3: #A89070;
+
+  --color-sidebar:         #150D06;
+  --color-sidebar-surface: #1F1509;
+  --color-sidebar-border:  #2A1B0E;
   --color-sidebar-muted:   #9B8570;
   --color-sidebar-accent:  #C9A880;
   --color-sidebar-text:    #D4B896;
   --color-sidebar-brand:   #E8C98A;
 
-  /* Map overlay glass */
-  --color-map-overlay: rgba(13,9,5,0.92);
-  --color-map-overlay-border: rgba(255,255,255,0.07);
+  --color-map-overlay:        rgba(13,9,5,0.88);
+  --color-map-overlay-border: rgba(255,217,168,0.10);
 
-  /* Shadows */
-  --shadow-card:       0 2px 12px rgba(0,0,0,0.35);
-  --shadow-card-hover: 0 6px 24px rgba(229,135,10,0.22);
-  --shadow-soft:       0 2px 16px rgba(0,0,0,0.35);
-  --shadow-float:      0 8px 32px rgba(0,0,0,0.45);
+  --shadow-card:       0 4px 20px rgba(0,0,0,0.40);
+  --shadow-card-hover: 0 10px 32px rgba(255,184,118,0.18);
+  --shadow-soft:       0 2px 16px rgba(0,0,0,0.40);
+  --shadow-float:      0 12px 40px rgba(0,0,0,0.55);
+
+  --gradient-dawn:   linear-gradient(135deg, #2A1810 0%, #4A2A1F 50%, #6B3A2A 100%);
+  --gradient-noon:   linear-gradient(135deg, #1A0F08 0%, #2A1810 50%, #3A2418 100%);
+  --gradient-dusk:   linear-gradient(135deg, #6B3A2A 0%, #2A1810 60%, #150D06 100%);
+  --gradient-night:  linear-gradient(135deg, #0A0604 0%, #150D06 100%);
+  --gradient-golden: linear-gradient(135deg, #FFD075 0%, #E5870A 50%, #C4502A 100%);
 }
 
-/* ── Base Reset ─────────────────────────────────── */
+/* ── Base Reset ────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
 
 html { text-size-adjust: 100%; }
@@ -104,7 +125,7 @@ body {
   font-family: 'DM Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background 0.25s, color 0.25s;
+  transition: background 0.4s ease, color 0.4s ease;
 }
 
 #root {
@@ -115,96 +136,150 @@ body {
   overflow: hidden;
 }
 
-/* ── Focus Visible ──────────────────────────────── */
+/* ── Focus Visible — single source of truth ────────── */
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-/* ── Fluid Type Scale ───────────────────────────── */
+/* ── Display Font ──────────────────────────────────── */
+.font-display {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-feature-settings: 'lnum' 1;
+}
+
+/* ── Fluid Type Scale — generous, lifestyle ──────── */
 @layer utilities {
-  .text-fluid-xs   { font-size: clamp(0.75rem,   0.7rem  + 0.2vw,  0.8125rem); }
+  .text-fluid-xs   { font-size: clamp(0.75rem,   0.7rem   + 0.2vw,  0.8125rem); }
   .text-fluid-sm   { font-size: clamp(0.8125rem, 0.775rem + 0.2vw,  0.9375rem); }
   .text-fluid-base { font-size: clamp(0.9375rem, 0.875rem + 0.3vw,  1.0625rem); }
-  .text-fluid-2xl  { font-size: clamp(1.375rem,  1.1rem  + 1.1vw,  1.75rem); }
-  .text-fluid-3xl  { font-size: clamp(1.75rem,   1.4rem  + 1.5vw,  2.25rem); }
+  .text-fluid-lg   { font-size: clamp(1.0625rem, 0.95rem  + 0.5vw,  1.25rem); }
+  .text-fluid-xl   { font-size: clamp(1.25rem,   1.05rem  + 0.8vw,  1.5rem); }
+  .text-fluid-2xl  { font-size: clamp(1.5rem,    1.15rem  + 1.4vw,  2rem); }
+  .text-fluid-3xl  { font-size: clamp(2rem,      1.5rem   + 2vw,    2.875rem); }
+  .text-fluid-hero { font-size: clamp(2.5rem,    1.8rem   + 3vw,    4rem); }
 }
 
-/* ── Card Hover ─────────────────────────────────── */
+/* ── Card Hover ────────────────────────────────────── */
 @layer utilities {
   .card-hover {
-    transition: box-shadow 0.2s ease, transform 0.15s ease;
+    transition: box-shadow 0.25s ease, transform 0.2s ease;
   }
   .card-hover:hover {
-    box-shadow: var(--shadow-card-hover) !important;
+    box-shadow: var(--shadow-card-hover);
     transform: translateY(-2px);
   }
 }
 
-/* ── Grain Overlay ──────────────────────────────── */
+/* ── Grain Overlay — subtle tactility ──────────────── */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 100;
-  opacity: 0.022;
+  opacity: 0.025;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-size: 256px 256px;
 }
 
-/* ── Scrollbar ──────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
+/* ── Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-3); }
 
-/* ── Display Font ───────────────────────────────── */
-.font-display {
-  font-family: 'Playfair Display', Georgia, serif;
-}
-
-/* ── Sun Pulse Animation ────────────────────────── */
+/* ── Sun Pulse ─────────────────────────────────────── */
 @keyframes sun-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245,172,50,0.4), 0 0 0 6px rgba(245,172,50,0.08); }
-  50%       { box-shadow: 0 0 0 4px rgba(245,172,50,0.2), 0 0 0 12px rgba(245,172,50,0.04); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,172,50,0.45), 0 0 0 8px rgba(245,172,50,0.10); }
+  50%      { box-shadow: 0 0 0 6px rgba(245,172,50,0.22), 0 0 0 16px rgba(245,172,50,0.05); }
 }
+.sun-pulse { animation: sun-pulse 3.5s ease-in-out infinite; }
 
-.sun-pulse {
-  animation: sun-pulse 3s ease-in-out infinite;
-}
-
-/* ── Fade In ────────────────────────────────────── */
+/* ── Fade Up ───────────────────────────────────────── */
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.fade-up         { animation: fade-up 0.4s ease both; }
-.fade-up-delay-1 { animation-delay: 0.06s; }
-.fade-up-delay-2 { animation-delay: 0.12s; }
-.fade-up-delay-3 { animation-delay: 0.18s; }
+.fade-up         { animation: fade-up 0.5s ease both; }
+.fade-up-delay-1 { animation-delay: 0.08s; }
+.fade-up-delay-2 { animation-delay: 0.16s; }
+.fade-up-delay-3 { animation-delay: 0.24s; }
+.fade-up-delay-4 { animation-delay: 0.32s; }
 
-/* ── Mapbox Popup ───────────────────────────────── */
+/* ── Shimmer (loading) ─────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-2) 0%,
+    var(--color-surface-3) 50%,
+    var(--color-surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* ── Mapbox Popup ─────────────────────────────────── */
 .mapboxgl-popup-content {
-  background: var(--color-sidebar) !important;
-  border: 1px solid var(--color-sidebar-border) !important;
-  border-radius: 10px !important;
+  background: var(--color-surface) !important;
+  color: var(--color-text-1) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 16px !important;
   padding: 0 !important;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5) !important;
+  box-shadow: var(--shadow-float) !important;
 }
 
 .mapboxgl-popup-close-button {
-  color: var(--color-sidebar-muted) !important;
-  font-size: 16px !important;
-  right: 6px !important;
-  top: 4px !important;
+  color: var(--color-text-3) !important;
+  font-size: 18px !important;
+  right: 8px !important;
+  top: 6px !important;
+  width: 24px !important;
+  height: 24px !important;
+  border-radius: 999px !important;
+  transition: all 0.15s !important;
 }
 
 .mapboxgl-popup-close-button:hover {
-  color: var(--color-sidebar-brand) !important;
-  background: transparent !important;
+  color: var(--color-text-1) !important;
+  background: var(--color-surface-2) !important;
 }
 
 .mapboxgl-popup-tip {
-  border-top-color: var(--color-sidebar) !important;
+  border-top-color: var(--color-surface) !important;
+  border-bottom-color: var(--color-surface) !important;
+}
+
+/* ── Page-level atmospheric backdrop ────────────────
+   Used by detail pages to feel like soft daylight, not a flat surface. */
+.bg-atmospheric {
+  background:
+    radial-gradient(ellipse at top right, rgba(245,213,195,0.55), transparent 55%),
+    radial-gradient(ellipse at bottom left, rgba(255,217,168,0.30), transparent 60%),
+    var(--color-bg);
+}
+[data-theme="dark"] .bg-atmospheric {
+  background:
+    radial-gradient(ellipse at top right, rgba(196,80,42,0.18), transparent 55%),
+    radial-gradient(ellipse at bottom left, rgba(255,184,118,0.10), transparent 60%),
+    var(--color-bg);
+}
+
+/* ── Text utilities for the lifestyle voice ────────── */
+.eyebrow {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-text-3);
+}
+
+/* ── Print ─────────────────────────────────────────── */
+@media print {
+  body::before, .no-print { display: none !important; }
 }

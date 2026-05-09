@@ -5,29 +5,31 @@ import { searchTerras, uuidFromHydraId } from '../services/terrasService';
 import { searchRestaurants } from '../services/restaurantService';
 import { searchEvents } from '../services/eventService';
 import { useFilters } from '../contexts/FilterContext';
-import { intensityColor } from '../utils/intensity';
+import { intensityColor, intensityLabel } from '../utils/intensity';
+import Card from '../components/ui/Card';
+import Pill from '../components/ui/Pill';
 import type { Terras, Restaurant, Event } from '../types';
 
 type Tab = 'terraces' | 'restaurants' | 'events';
 const PAGE_SIZE = 20;
 
-function IntensityBar({ value, cloudCover }: { value: number; cloudCover?: number }) {
-  const color = intensityColor(value);
-  const isCloudy = cloudCover !== undefined && cloudCover > 80;
-
+function IntensityBadge({ value, cloudCover }: { value: number; cloudCover?: number }) {
+  const colour = intensityColor(value);
+  const cloudy = cloudCover != null && cloudCover > 80;
   return (
-    <div className="flex items-center gap-2.5 mt-3">
-      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--color-track)' }}>
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-track)' }}>
         <div
           className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${value}%`, background: `linear-gradient(to right, ${color}88, ${color})` }}
+          style={{
+            width: `${value}%`,
+            background: `linear-gradient(to right, ${colour}88, ${colour})`,
+          }}
         />
       </div>
-      <div className="flex items-center gap-1 shrink-0">
-        {isCloudy && (
-          <span title={`Heavy clouds (${cloudCover}%)`} className="text-sm">☁️</span>
-        )}
-        <span className="text-xs font-semibold tabular-nums w-8 text-right" style={{ color }}>
+      <div className="shrink-0 flex items-center gap-1">
+        {cloudy && <span title={`Heavy clouds (${cloudCover}%)`} className="text-xs">☁</span>}
+        <span className="text-xs font-bold tabular-nums w-9 text-right" style={{ color: colour }}>
           {value}%
         </span>
       </div>
@@ -37,48 +39,40 @@ function IntensityBar({ value, cloudCover }: { value: number; cloudCover?: numbe
 
 function TerrasCard({ item }: { item: Terras & { '@id': string } }) {
   return (
-    <Link
-      to={`/terrasen/${uuidFromHydraId(item['@id'])}`}
-      className="block px-4 py-4 bg-surface rounded-2xl card-hover fade-up"
-      style={{ border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="font-display text-base font-semibold text-text-1 leading-snug">{item.name}</h3>
-          <p className="text-xs mt-1 text-text-3">{item.address}</p>
+    <Link to={`/terrasen/${uuidFromHydraId(item['@id'])}`} className="block group">
+      <Card variant="surface" radius="2xl" padding="lg" className="card-hover fade-up h-full">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="min-w-0">
+            <h3 className="font-display font-semibold text-text-1 leading-tight" style={{ fontSize: '1.125rem' }}>
+              {item.name}
+            </h3>
+            <p className="text-xs mt-1.5 text-text-3">{item.address}</p>
+          </div>
+          <Pill tone="gold">Terrace</Pill>
         </div>
-        <span
-          className="text-xs font-medium uppercase tracking-label text-text-3 shrink-0 mt-0.5 px-2 py-1 rounded-lg"
-          style={{ background: 'var(--color-surface-2)' }}
-        >
-          Terrace
-        </span>
-      </div>
-      <IntensityBar value={item.intensity} cloudCover={item.latestSunData?.rawCloudCover} />
+        <p className="eyebrow mb-2">{intensityLabel(item.intensity)}</p>
+        <IntensityBadge value={item.intensity} cloudCover={item.latestSunData?.rawCloudCover} />
+      </Card>
     </Link>
   );
 }
 
 function RestaurantCard({ item }: { item: Restaurant & { '@id': string } }) {
   return (
-    <Link
-      to={`/restaurants/${uuidFromHydraId(item['@id'])}`}
-      className="block px-4 py-4 bg-surface rounded-2xl card-hover fade-up"
-      style={{ border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="font-display text-base font-semibold text-text-1 leading-snug">{item.name}</h3>
-          <p className="text-xs mt-1 text-text-3">{item.address}</p>
+    <Link to={`/restaurants/${uuidFromHydraId(item['@id'])}`} className="block group">
+      <Card variant="surface" radius="2xl" padding="lg" className="card-hover fade-up h-full">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="min-w-0">
+            <h3 className="font-display font-semibold text-text-1 leading-tight" style={{ fontSize: '1.125rem' }}>
+              {item.name}
+            </h3>
+            <p className="text-xs mt-1.5 text-text-3">{item.address}</p>
+          </div>
+          <Pill tone="sky" className="capitalize">{item.cuisine}</Pill>
         </div>
-        <span
-          className="text-xs font-medium capitalize px-2 py-1 rounded-lg shrink-0 mt-0.5"
-          style={{ color: 'var(--color-sky)', background: 'var(--color-sky-light)' }}
-        >
-          {item.cuisine}
-        </span>
-      </div>
-      <IntensityBar value={item.intensity} cloudCover={item.latestSunData?.rawCloudCover} />
+        <p className="eyebrow mb-2">{intensityLabel(item.intensity)}</p>
+        <IntensityBadge value={item.intensity} cloudCover={item.latestSunData?.rawCloudCover} />
+      </Card>
     </Link>
   );
 }
@@ -86,28 +80,23 @@ function RestaurantCard({ item }: { item: Restaurant & { '@id': string } }) {
 function EventCard({ item }: { item: Event & { '@id': string } }) {
   const start = new Date(item.date_start);
   return (
-    <Link
-      to={`/events/${uuidFromHydraId(item['@id'])}`}
-      className="block px-4 py-4 bg-surface rounded-2xl card-hover fade-up"
-      style={{ border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="font-display text-base font-semibold text-text-1 leading-snug">{item.title}</h3>
-          <p className="text-xs mt-1 text-text-3">{item.address}</p>
-        </div>
-        <div
-          className="text-center shrink-0 mt-0.5 px-2 py-1 rounded-lg"
-          style={{ background: 'var(--color-primary-light)' }}
-        >
-          <p className="text-xs font-semibold tabular-nums" style={{ color: 'var(--color-primary)' }}>
+    <Link to={`/events/${uuidFromHydraId(item['@id'])}`} className="block group">
+      <Card variant="surface" radius="2xl" padding="lg" className="card-hover fade-up h-full">
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div className="min-w-0">
+            <h3 className="font-display font-semibold text-text-1 leading-tight" style={{ fontSize: '1.125rem' }}>
+              {item.title}
+            </h3>
+            <p className="text-xs mt-1.5 text-text-3">{item.address}</p>
+          </div>
+          <Pill tone="terra" className="tabular-nums">
             {start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-          </p>
+          </Pill>
         </div>
-      </div>
-      {item.description && (
-        <p className="text-xs mt-2.5 line-clamp-2 text-text-2">{item.description}</p>
-      )}
+        {item.description && (
+          <p className="text-sm text-text-2 line-clamp-2 leading-relaxed">{item.description}</p>
+        )}
+      </Card>
     </Link>
   );
 }
@@ -126,14 +115,12 @@ export default function SearchPage() {
     enabled: tab === 'terraces',
     placeholderData: (p) => p,
   });
-
   const restaurantQuery = useQuery({
     queryKey: ['search-restaurants', query, cuisine, minIntensity, page],
     queryFn: () => searchRestaurants({ q: query || undefined, cuisine: cuisine || undefined, minIntensity: minIntensity || undefined, limit: PAGE_SIZE, skip: page * PAGE_SIZE }),
     enabled: tab === 'restaurants',
     placeholderData: (p) => p,
   });
-
   const eventQuery = useQuery({
     queryKey: ['search-events', query, page],
     queryFn: () => searchEvents({ q: query || undefined, limit: PAGE_SIZE, skip: page * PAGE_SIZE }),
@@ -147,20 +134,27 @@ export default function SearchPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
-    <div className="flex-1 overflow-y-auto bg-bg">
-      <div className="max-w-2xl mx-auto px-4 py-7">
+    <div className="flex-1 overflow-y-auto bg-atmospheric">
+      <div className="max-w-3xl mx-auto px-5 sm:px-8 py-8">
 
-        {/* Page heading */}
-        <div className="mb-6">
-          <h1 className="font-display text-fluid-2xl font-semibold text-text-1">Discover Ghent</h1>
-          <p className="text-sm text-text-3 mt-1">Find the sunniest spots in the city</p>
-        </div>
+        {/* Editorial heading */}
+        <header className="mb-8 fade-up">
+          <p className="eyebrow mb-2">Discover</p>
+          <h1 className="font-display font-semibold text-text-1 leading-[1.05] text-fluid-3xl tracking-tight">
+            Where the sun lands<br />
+            <span style={{ color: 'var(--color-primary)' }}>in Ghent today</span>
+          </h1>
+          <p className="text-text-2 mt-3 text-fluid-base max-w-prose">
+            Browse the city's terraces, restaurants and events, ranked by how much sun
+            they're catching right now.
+          </p>
+        </header>
 
-        {/* Search input */}
-        <div className="relative mb-5">
+        {/* Search bar */}
+        <div className="relative mb-5 fade-up fade-up-delay-1">
           <svg
             className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none"
-            width="15" height="15" viewBox="0 0 24 24" fill="none"
+            width="16" height="16" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round"
             style={{ color: 'var(--color-text-3)' }}
           >
@@ -169,32 +163,35 @@ export default function SearchPage() {
           </svg>
           <input
             type="search"
-            placeholder="Search terraces, restaurants, events…"
+            placeholder="Search by name, address, cuisine…"
             value={query}
             onChange={(e) => handleQuery(e.target.value)}
-            className="w-full bg-surface rounded-2xl pl-11 pr-4 py-3 text-sm text-text-1 placeholder:text-text-3 focus:outline-none transition-all"
+            className="w-full rounded-2xl pl-11 pr-4 py-3.5 text-sm text-text-1 placeholder:text-text-3 transition-shadow"
             style={{
+              background: 'var(--color-surface)',
               border: '1px solid var(--color-border)',
               boxShadow: 'var(--shadow-card)',
             }}
-            onFocus={e => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(229,135,10,0.16), 0 0 0 2px rgba(229,135,10,0.18)')}
-            onBlur={e => (e.currentTarget.style.boxShadow = 'var(--shadow-card)')}
           />
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 rounded-2xl p-1 mb-5" style={{ background: 'var(--color-surface-3)' }}>
+        <div
+          className="flex gap-1 rounded-2xl p-1 mb-5 fade-up fade-up-delay-1"
+          style={{ background: 'var(--color-surface-2)' }}
+        >
           {(['terraces', 'restaurants', 'events'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => handleTab(t)}
-              className="flex-1 py-2.5 text-sm font-medium rounded-xl transition-all"
+              className="flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all min-h-[44px]"
               style={tab === t ? {
                 background: 'var(--color-surface)',
                 color: 'var(--color-text-1)',
                 boxShadow: 'var(--shadow-card)',
               } : {
                 color: 'var(--color-text-3)',
+                background: 'transparent',
               }}
             >
               {t.charAt(0).toUpperCase() + t.slice(1)}
@@ -203,30 +200,25 @@ export default function SearchPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-2 mb-5">
+        <div className="flex flex-wrap gap-2 mb-6 fade-up fade-up-delay-2">
           {tab === 'terraces' && (
-            <label
-              className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs cursor-pointer transition-colors min-h-[44px]"
+            <button
+              onClick={() => { setSunnyOnly(!sunnyOnly); setPage(0); }}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-colors min-h-[40px]"
               style={{
                 background: sunnyOnly ? 'var(--color-primary-light)' : 'var(--color-surface)',
                 border: `1px solid ${sunnyOnly ? 'var(--color-primary-border)' : 'var(--color-border)'}`,
                 color: sunnyOnly ? 'var(--color-primary)' : 'var(--color-text-3)',
               }}
             >
-              <input
-                type="checkbox"
-                checked={sunnyOnly}
-                onChange={(e) => { setSunnyOnly(e.target.checked); setPage(0); }}
-                className="accent-primary w-3.5 h-3.5"
-              />
-              <span className="font-medium">Sunny only ☀️</span>
-            </label>
+              <span>☀</span> Sunny only
+            </button>
           )}
           {tab === 'restaurants' && (
             <select
               value={cuisine}
               onChange={(e) => { setCuisine(e.target.value); setPage(0); }}
-              className="px-3 py-2.5 rounded-xl text-xs text-text-2 focus:outline-none transition-colors min-h-[44px]"
+              className="px-3 py-2 rounded-xl text-xs text-text-2 transition-colors min-h-[40px]"
               style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
             >
               <option value="">All cuisines</option>
@@ -237,16 +229,16 @@ export default function SearchPage() {
           )}
           {tab !== 'events' && (
             <div
-              className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl min-h-[44px]"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl min-h-[40px]"
               style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
             >
               <span className="text-xs font-medium text-text-2">Min sun</span>
               <input
                 type="range" min={0} max={100} step={10} value={minIntensity}
                 onChange={(e) => { setMinIntensity(Number(e.target.value)); setPage(0); }}
-                className="w-20 h-1 cursor-pointer accent-primary"
+                className="w-24 h-1 cursor-pointer accent-primary"
               />
-              <span className="text-xs font-bold tabular-nums w-7" style={{ color: 'var(--color-primary)' }}>{minIntensity}%</span>
+              <span className="text-xs font-bold tabular-nums w-9 text-right" style={{ color: 'var(--color-primary)' }}>{minIntensity}%</span>
             </div>
           )}
         </div>
@@ -254,27 +246,22 @@ export default function SearchPage() {
         {/* Count */}
         {!isLoading && (
           <p className="text-xs text-text-3 mb-4 font-medium">
-            {total.toLocaleString()} result{total !== 1 ? 's' : ''}
-            {page > 0 && ` — page ${page + 1} of ${totalPages}`}
+            {total.toLocaleString()} {tab}{page > 0 && ` · page ${page + 1} of ${totalPages}`}
           </p>
         )}
 
         {/* Skeletons */}
         {isLoading && (
-          <div className="space-y-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-24 rounded-2xl animate-pulse"
-                style={{ background: 'var(--color-surface-2)', animationDelay: `${i * 0.05}s` }}
-              />
+              <div key={i} className="h-32 rounded-2xl shimmer" style={{ animationDelay: `${i * 0.06}s` }} />
             ))}
           </div>
         )}
 
         {/* Results */}
         {!isLoading && (
-          <div className="space-y-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {tab === 'terraces' && (terrasQuery.data?.['hydra:member'] ?? []).map((item) => (
               <TerrasCard key={item.uuid} item={item} />
             ))}
@@ -287,14 +274,27 @@ export default function SearchPage() {
           </div>
         )}
 
+        {/* Empty */}
+        {!isLoading && total === 0 && (
+          <Card variant="cream" padding="lg" radius="2xl" className="text-center fade-up">
+            <p className="font-display text-text-1" style={{ fontSize: '1.25rem' }}>Nothing here yet</p>
+            <p className="text-sm text-text-3 mt-2">Try clearing the filters or searching for something else.</p>
+          </Card>
+        )}
+
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-3 mt-8">
             <button
               disabled={page === 0}
               onClick={() => setPage((p) => p - 1)}
-              className="px-4 py-2.5 text-sm font-medium rounded-xl bg-surface text-text-2 disabled:opacity-40 transition-all hover:-translate-y-0.5 min-h-[44px]"
-              style={{ border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+              className="px-4 py-2.5 text-sm font-medium rounded-xl disabled:opacity-40 transition-all hover:-translate-y-0.5 min-h-[44px]"
+              style={{
+                background: 'var(--color-surface)',
+                color: 'var(--color-text-2)',
+                border: '1px solid var(--color-border)',
+                boxShadow: 'var(--shadow-card)',
+              }}
             >
               ← Previous
             </button>
@@ -302,13 +302,20 @@ export default function SearchPage() {
             <button
               disabled={page >= totalPages - 1}
               onClick={() => setPage((p) => p + 1)}
-              className="px-4 py-2.5 text-sm font-medium rounded-xl bg-surface text-text-2 disabled:opacity-40 transition-all hover:-translate-y-0.5 min-h-[44px]"
-              style={{ border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+              className="px-4 py-2.5 text-sm font-medium rounded-xl disabled:opacity-40 transition-all hover:-translate-y-0.5 min-h-[44px]"
+              style={{
+                background: 'var(--color-surface)',
+                color: 'var(--color-text-2)',
+                border: '1px solid var(--color-border)',
+                boxShadow: 'var(--shadow-card)',
+              }}
             >
               Next →
             </button>
           </div>
         )}
+
+        <div className="h-10" />
       </div>
     </div>
   );

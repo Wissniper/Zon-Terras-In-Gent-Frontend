@@ -14,10 +14,18 @@ export default function OfflineIndicator({ queryError = false }: OfflineIndicato
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50
-                 bg-surface text-text-1 text-xs font-medium shadow-float
-                 px-4 py-2 rounded-full border border-surface-3"
+      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-medium fade-up"
+      style={{
+        background: 'var(--color-surface)',
+        color: 'var(--color-text-1)',
+        border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-float)',
+      }}
     >
+      <span
+        className="w-1.5 h-1.5 rounded-full"
+        style={{ background: 'var(--color-terra)', animation: 'sun-pulse 2s ease-in-out infinite' }}
+      />
       {!isConnected ? 'Live updates unavailable' : 'Failed to load data'}
     </div>
   );
