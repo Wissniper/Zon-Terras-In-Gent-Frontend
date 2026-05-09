@@ -139,13 +139,6 @@ export default function TerrasDetailPage() {
             <div className="grid grid-cols-2 gap-2.5">
               <SunStat label="Altitude" value={`${Math.round((sun.altitude * 180) / Math.PI)}°`} />
               <SunStat label="Azimuth" value={`${Math.round((sun.azimuth * 180) / Math.PI)}°`} />
-              {sun.shadowScore !== undefined && (
-                <SunStat
-                  label="Shadow"
-                  value={`${sun.altitude <= 0 ? 100 : Math.round((1 - sun.shadowScore) * 100)}%`}
-                  sub="building shadow at this hour"
-                />
-              )}
               {sun.goldenHour && (
                 <>
                   <SunStat
