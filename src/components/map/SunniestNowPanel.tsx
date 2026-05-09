@@ -11,7 +11,7 @@ interface Props {
  * Top-right floating leaderboard. Shows the 5 sunniest terraces right now and
  * lets the user click through to focus one on the map.
  *
- * On the map this is the "where do I go" answer at a glance.
+ * Surface and text both follow the active theme via tokens.
  */
 export default function SunniestNowPanel({ onPick }: Props) {
   const { data, isLoading } = useQuery({
@@ -24,36 +24,31 @@ export default function SunniestNowPanel({ onPick }: Props) {
 
   return (
     <div
-      className="rounded-2xl px-4 py-4 fade-up fade-up-delay-1"
+      className="rounded-2xl px-4 py-4 fade-up fade-up-delay-1 text-text-1"
       style={{
         background: 'var(--color-map-overlay)',
         border: '1px solid var(--color-map-overlay-border)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        color: '#F5EFE3',
         boxShadow: 'var(--shadow-float)',
         width: 264,
       }}
     >
       <div className="flex items-baseline justify-between mb-3">
-        <span className="eyebrow" style={{ color: 'rgba(245,239,227,0.65)' }}>
-          Sunniest right now
-        </span>
-        <span className="text-[11px] tabular-nums" style={{ color: 'rgba(245,239,227,0.55)' }}>
-          live
-        </span>
+        <span className="eyebrow">Sunniest right now</span>
+        <span className="text-[11px] tabular-nums text-text-3">live</span>
       </div>
 
       {isLoading && (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-9 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }} />
+            <div key={i} className="h-9 rounded-lg shimmer" />
           ))}
         </div>
       )}
 
       {!isLoading && items.length === 0 && (
-        <p className="text-xs py-3" style={{ color: 'rgba(245,239,227,0.65)' }}>
+        <p className="text-xs py-3 text-text-3">
           No fully sunny terraces right now.
         </p>
       )}
@@ -65,21 +60,25 @@ export default function SunniestNowPanel({ onPick }: Props) {
             <li key={t.uuid}>
               <button
                 onClick={() => onPick(t.uuid)}
-                className="w-full text-left group flex items-center gap-3 px-2 py-2 rounded-lg transition-colors"
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                className="w-full text-left flex items-center gap-3 px-2 py-2 rounded-lg transition-colors"
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-2)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
                 <span
                   className="font-display tabular-nums shrink-0"
-                  style={{ width: 18, fontSize: '0.95rem', color: i === 0 ? '#FFD9A8' : 'rgba(245,239,227,0.55)' }}
+                  style={{
+                    width: 18,
+                    fontSize: '0.95rem',
+                    color: i === 0 ? 'var(--color-primary)' : 'var(--color-text-3)',
+                  }}
                 >
                   {i + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium truncate" style={{ color: '#F5EFE3' }}>
+                  <p className="text-xs font-medium truncate text-text-1">
                     {t.name}
                   </p>
-                  <p className="truncate" style={{ color: 'rgba(245,239,227,0.55)', fontSize: 10.5 }}>
+                  <p className="truncate text-text-3" style={{ fontSize: 10.5 }}>
                     {intensityLabel(t.intensity)}
                   </p>
                 </div>
@@ -98,17 +97,16 @@ export default function SunniestNowPanel({ onPick }: Props) {
       {items.length > 0 && (
         <a
           href="/discover"
-          className="block text-center text-[11px] font-medium mt-3 pt-3 transition-colors"
+          className="block text-center text-[11px] font-semibold mt-3 pt-3 transition-colors"
           style={{
-            color: 'rgba(255,217,168,0.85)',
-            borderTop: '1px solid rgba(255,255,255,0.10)',
+            color: 'var(--color-primary)',
+            borderTop: '1px solid var(--color-border)',
             paddingTop: 12,
           }}
         >
           See all in Discover →
         </a>
       )}
-
     </div>
   );
 }

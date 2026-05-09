@@ -1,24 +1,24 @@
 /**
- * Sun-intensity colour helpers for the lifestyle palette.
+ * Sun-intensity colour helpers for the editorial palette.
  *
- *   ≥70  → gold      (full sun)
- *   ≥40  → terracotta (partial)
- *   ≥1   → sage     (filtered, in shade)
- *    0   → muted brown (night / overcast)
+ *   ≥70  → bright sun  (full sun)
+ *   ≥40  → coral       (partial)
+ *   ≥1   → sage        (filtered, in shade)
+ *    0   → muted gray  (night / overcast)
  */
 export function intensityColor(v: number): string {
-  if (v >= 70) return '#E5870A';
-  if (v >= 40) return '#C4502A';
-  if (v >= 1)  return '#8FA382';
-  return '#8B7758';
+  if (v >= 70) return '#ED8A1F';
+  if (v >= 40) return '#FF6B4A';
+  if (v >= 1)  return '#6B9981';
+  return '#92929A';
 }
 
 /** Soft tinted background for an intensity badge — pairs with intensityColor. */
 export function intensityTint(v: number): string {
-  if (v >= 70) return 'rgba(229,135,10,0.14)';
-  if (v >= 40) return 'rgba(196,80,42,0.12)';
-  if (v >= 1)  return 'rgba(143,163,130,0.16)';
-  return 'rgba(139,119,88,0.12)';
+  if (v >= 70) return 'rgba(237,138,31,0.14)';
+  if (v >= 40) return 'rgba(255,107,74,0.12)';
+  if (v >= 1)  return 'rgba(107,153,129,0.16)';
+  return 'rgba(146,146,154,0.12)';
 }
 
 /** Human-friendly label for a given intensity. */

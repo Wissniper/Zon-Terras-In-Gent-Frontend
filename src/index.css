@@ -3,105 +3,110 @@
 @tailwind utilities;
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Sun Seeker — Lifestyle palette (v2: restrained)
-   Off-white surfaces, near-black warm charcoal text, terracotta as accent.
-   Inspired by Resy / Soho House — generous whitespace, no overpowering colour.
+   Sun Seeker — Editorial palette
+   Light mode: crisp white + cool charcoal, vivid sun-gold as accent.
+   Dark mode:  cinematic near-black + warm amber.
+   The cool-vs-warm contrast lets the brand colour actually feel like sun.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surfaces — off-white stack, very subtly warm */
-  --color-bg:          #FAF6EE;
+  /* Surfaces — clean white stack with a faint warm hint */
+  --color-bg:          #FCFBF7;
   --color-surface:     #FFFFFF;
-  --color-surface-2:   #F4EFE5;
-  --color-surface-3:   #EBE5D8;
-  --color-border:      #E5DDCB;
-  --color-track:       #E8E0CD;
+  --color-surface-2:   #F1F1ED;
+  --color-surface-3:   #E6E6E0;
+  --color-border:      #DEDED8;
+  --color-track:       #E6E6E0;
 
-  /* Brand — terracotta + sun gold, used SPARINGLY as accent */
-  --color-primary:        #C4502A;
-  --color-primary-light:  #FBE4D5;
-  --color-primary-border: rgba(196,80,42,0.22);
-  --color-gold:           #E5870A;
-  --color-blush:          #F5D5C3;
-  --color-cream:          #FAF6EE;
-  --color-sage:           #8FA382;
+  /* Brand — vivid sun-gold + coral for variety */
+  --color-primary:        #ED8A1F;          /* deep marigold — pops against cool gray */
+  --color-primary-light:  #FFF0DA;
+  --color-primary-border: rgba(237,138,31,0.28);
+  --color-on-primary:     #15151B;          /* always-dark text on amber CTA — high contrast in both modes */
+  --color-gold:           #FFB627;          /* bright sun */
+  --color-coral:          #FF6B4A;          /* coral / dusk */
+  --color-blush:          #FFCDB8;
+  --color-sage:           #6B9981;          /* fresh accent */
 
   /* Differentiation accents */
-  --color-sky:        #5C8FA8;
-  --color-sky-light:  #DEEAF1;
-  --color-terra:      #A03D1F;
+  --color-sky:        #4A8AAB;
+  --color-sky-light:  #E5EFF5;
+  --color-terra:      #FF6B4A;              /* alias for coral */
 
-  /* Text — near-black with warm undertone, NOT brown */
-  --color-text-1: #1A1611;
-  --color-text-2: #56514A;
-  --color-text-3: #8A847A;
+  /* Text — cool near-black on cool surfaces */
+  --color-text-1: #15151B;
+  --color-text-2: #525258;
+  --color-text-3: #93939A;
 
-  /* "Sidebar" tokens — kept for back-compat but light now */
-  --color-sidebar:         #F4EFE5;
+  /* Sidebar tokens kept for back-compat — light scheme */
+  --color-sidebar:         #F1F1ED;
   --color-sidebar-surface: #FFFFFF;
-  --color-sidebar-border:  #E5DDCB;
-  --color-sidebar-muted:   #8A847A;
-  --color-sidebar-accent:  #56514A;
-  --color-sidebar-text:    #1A1611;
-  --color-sidebar-brand:   #C4502A;
+  --color-sidebar-border:  #DEDED8;
+  --color-sidebar-muted:   #93939A;
+  --color-sidebar-accent:  #525258;
+  --color-sidebar-text:    #15151B;
+  --color-sidebar-brand:   #ED8A1F;
 
-  /* Map overlay — translucent dark for floating panels over Mapbox */
-  --color-map-overlay:        rgba(26,22,17,0.82);
-  --color-map-overlay-border: rgba(255,255,255,0.10);
-  --color-map-overlay-light:  rgba(255,255,255,0.92);
+  /* Map overlay — translucent SURFACE for floating panels over Mapbox.
+     Light mode: light glass, dark text reads naturally.
+     Dark  mode: dark glass, light text reads naturally.
+     Either way, text inside uses --color-text-* and adapts automatically. */
+  --color-map-overlay:        rgba(255,255,255,0.92);
+  --color-map-overlay-border: rgba(20,20,26,0.10);
 
-  /* Shadows — soft, low-saturation */
-  --shadow-card:       0 2px 14px rgba(60,45,30,0.06);
-  --shadow-card-hover: 0 8px 28px rgba(60,45,30,0.12);
-  --shadow-soft:       0 1px 12px rgba(60,45,30,0.06);
-  --shadow-float:      0 12px 40px rgba(60,45,30,0.14);
-  --shadow-amber:      0 4px 22px rgba(196,80,42,0.28);
-  --shadow-amber-lg:   0 10px 40px rgba(196,80,42,0.34);
+  /* Shadows — neutral cool grey, not brown */
+  --shadow-card:       0 2px 14px rgba(20,20,26,0.06);
+  --shadow-card-hover: 0 8px 28px rgba(20,20,26,0.12);
+  --shadow-soft:       0 1px 12px rgba(20,20,26,0.06);
+  --shadow-float:      0 12px 40px rgba(20,20,26,0.14);
+  --shadow-amber:      0 4px 22px rgba(237,138,31,0.30);
+  --shadow-amber-lg:   0 10px 40px rgba(237,138,31,0.36);
 }
 
-/* ── Dark Mode — moonlit terras ───────────────────── */
+/* ── Dark mode — cinematic, premium ─────────────────
+   True near-black surfaces, warm amber accent. Like a cocktail bar at dusk. */
 [data-theme="dark"] {
-  --color-bg:          #161310;
-  --color-surface:     #1F1B16;
-  --color-surface-2:   #2A2520;
-  --color-surface-3:   #322B25;
-  --color-border:      #3A332B;
-  --color-track:       #3A332B;
+  --color-bg:          #0E0E12;
+  --color-surface:     #17171D;
+  --color-surface-2:   #1F1F26;
+  --color-surface-3:   #292930;
+  --color-border:      #2F2F38;
+  --color-track:       #2F2F38;
 
-  --color-primary:        #FFB876;
-  --color-primary-light:  rgba(255,184,118,0.12);
-  --color-primary-border: rgba(255,184,118,0.32);
+  --color-primary:        #FFB554;          /* warm amber — readable on dark */
+  --color-primary-light:  rgba(255,181,84,0.13);
+  --color-primary-border: rgba(255,181,84,0.32);
+  --color-on-primary:     #15151B;          /* always-dark text on amber CTA */
   --color-gold:           #FFD075;
+  --color-coral:          #FF8E72;
   --color-blush:          #3A2A22;
-  --color-cream:          #1F1B16;
-  --color-sage:           #B0C29A;
+  --color-sage:           #94B5A2;
 
-  --color-sky:        #8FB8D0;
-  --color-sky-light:  rgba(143,184,208,0.13);
-  --color-terra:      #E8855A;
+  --color-sky:        #7DB1CC;
+  --color-sky-light:  rgba(125,177,204,0.13);
+  --color-terra:      #FF8E72;
 
-  --color-text-1: #F5EFE3;
-  --color-text-2: #C4BBA9;
-  --color-text-3: #8A8276;
+  --color-text-1: #F4F4F0;
+  --color-text-2: #B5B5BC;
+  --color-text-3: #7E7E87;
 
-  --color-sidebar:         #1F1B16;
-  --color-sidebar-surface: #2A2520;
-  --color-sidebar-border:  #3A332B;
-  --color-sidebar-muted:   #8A8276;
-  --color-sidebar-accent:  #C4BBA9;
-  --color-sidebar-text:    #F5EFE3;
-  --color-sidebar-brand:   #FFB876;
+  --color-sidebar:         #17171D;
+  --color-sidebar-surface: #1F1F26;
+  --color-sidebar-border:  #2F2F38;
+  --color-sidebar-muted:   #7E7E87;
+  --color-sidebar-accent:  #B5B5BC;
+  --color-sidebar-text:    #F4F4F0;
+  --color-sidebar-brand:   #FFB554;
 
-  --color-map-overlay:        rgba(13,10,7,0.86);
+  --color-map-overlay:        rgba(14,14,18,0.88);
   --color-map-overlay-border: rgba(255,255,255,0.10);
-  --color-map-overlay-light:  rgba(31,27,22,0.92);
 
-  --shadow-card:       0 2px 14px rgba(0,0,0,0.40);
-  --shadow-card-hover: 0 8px 28px rgba(255,184,118,0.16);
-  --shadow-soft:       0 1px 12px rgba(0,0,0,0.40);
+  --shadow-card:       0 2px 14px rgba(0,0,0,0.42);
+  --shadow-card-hover: 0 8px 28px rgba(255,181,84,0.18);
+  --shadow-soft:       0 1px 12px rgba(0,0,0,0.42);
   --shadow-float:      0 12px 40px rgba(0,0,0,0.55);
-  --shadow-amber:      0 4px 22px rgba(255,184,118,0.30);
-  --shadow-amber-lg:   0 10px 40px rgba(255,184,118,0.40);
+  --shadow-amber:      0 4px 22px rgba(255,181,84,0.32);
+  --shadow-amber-lg:   0 10px 40px rgba(255,181,84,0.42);
 }
 
 /* ── Base Reset ────────────────────────────────────── */
@@ -139,7 +144,7 @@ body {
   font-feature-settings: 'lnum' 1, 'kern' 1;
 }
 
-/* ── Fluid Type Scale — generous, lifestyle ──────── */
+/* ── Fluid Type Scale ──────────────────────────────── */
 @layer utilities {
   .text-fluid-xs   { font-size: clamp(0.75rem,   0.7rem   + 0.2vw,  0.8125rem); }
   .text-fluid-sm   { font-size: clamp(0.8125rem, 0.775rem + 0.2vw,  0.9375rem); }
@@ -162,16 +167,19 @@ body {
   }
 }
 
-/* ── Grain Overlay — subtle tactility ──────────────── */
+/* ── Grain Overlay ─────────────────────────────────── */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 100;
-  opacity: 0.018;
+  opacity: 0.014;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-size: 256px 256px;
+}
+[data-theme="dark"] body::before {
+  opacity: 0.030;
 }
 
 /* ── Scrollbar ─────────────────────────────────────── */
@@ -182,8 +190,8 @@ body::before {
 
 /* ── Sun Pulse ─────────────────────────────────────── */
 @keyframes sun-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(229,135,10,0.45), 0 0 0 6px rgba(229,135,10,0.10); }
-  50%      { box-shadow: 0 0 0 4px rgba(229,135,10,0.22), 0 0 0 12px rgba(229,135,10,0.05); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(237,138,31,0.45), 0 0 0 6px rgba(237,138,31,0.10); }
+  50%      { box-shadow: 0 0 0 4px rgba(237,138,31,0.22), 0 0 0 12px rgba(237,138,31,0.05); }
 }
 .sun-pulse { animation: sun-pulse 3.5s ease-in-out infinite; }
 
@@ -234,30 +242,28 @@ body::before {
   border-radius: 999px !important;
   transition: all 0.15s !important;
 }
-
 .mapboxgl-popup-close-button:hover {
   color: var(--color-text-1) !important;
   background: var(--color-surface-2) !important;
 }
-
 .mapboxgl-popup-tip {
   border-top-color: var(--color-surface) !important;
   border-bottom-color: var(--color-surface) !important;
 }
 
-/* ── Page-level atmospheric backdrops ──────────────── */
-
-/* Soft warm sun-light wash for editorial pages */
+/* ── Editorial backdrop ─────────────────────────────
+   A soft gold-light wash, low intensity, only at the corners — gives the
+   page a sense of sun-streaked but stays clean and bright. */
 .bg-atmospheric {
   background:
-    radial-gradient(ellipse 90% 60% at 90% -10%, rgba(245,213,195,0.50), transparent 70%),
-    radial-gradient(ellipse 70% 40% at -10% 100%, rgba(229,135,10,0.10), transparent 70%),
+    radial-gradient(ellipse 80% 50% at 90% -10%, rgba(255,182,39,0.16), transparent 70%),
+    radial-gradient(ellipse 60% 40% at -10% 110%, rgba(237,138,31,0.08), transparent 70%),
     var(--color-bg);
 }
 [data-theme="dark"] .bg-atmospheric {
   background:
-    radial-gradient(ellipse 90% 60% at 90% -10%, rgba(196,80,42,0.18), transparent 70%),
-    radial-gradient(ellipse 70% 40% at -10% 100%, rgba(255,184,118,0.10), transparent 70%),
+    radial-gradient(ellipse 80% 50% at 90% -10%, rgba(255,181,84,0.10), transparent 70%),
+    radial-gradient(ellipse 60% 40% at -10% 110%, rgba(255,142,114,0.06), transparent 70%),
     var(--color-bg);
 }
 

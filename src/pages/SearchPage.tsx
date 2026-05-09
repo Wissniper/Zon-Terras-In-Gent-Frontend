@@ -314,7 +314,7 @@ export default function SearchPage() {
                   className="text-sm font-medium px-4 py-2 rounded-full transition-all min-h-[40px]"
                   style={active ? {
                     background: 'var(--color-primary)',
-                    color: '#FFFFFF',
+                    color: 'var(--color-on-primary)',
                     boxShadow: 'var(--shadow-amber)',
                   } : {
                     background: 'var(--color-surface)',

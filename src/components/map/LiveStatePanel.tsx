@@ -4,10 +4,10 @@ import { useWeatherData } from '../../hooks/useWeatherData';
 import { useSunPosition } from '../../hooks/useSunPosition';
 
 /**
- * Top-left floating panel that shows the live state of the city at the
- * currently selected time: time of day, weather, sun position.
+ * Top-left floating panel — current time, weather, sun position.
  *
- * Lives over the Mapbox map, so uses a dark glass surface.
+ * The surface follows the active theme via --color-map-overlay; the text
+ * uses --color-text-* tokens so it inverts cleanly between light and dark.
  */
 export default function LiveStatePanel() {
   const { selectedTime } = useSelectedTime();
@@ -46,13 +46,12 @@ export default function LiveStatePanel() {
 
   return (
     <div
-      className="rounded-2xl px-5 py-4 fade-up"
+      className="rounded-2xl px-5 py-4 fade-up text-text-1"
       style={{
         background: 'var(--color-map-overlay)',
         border: '1px solid var(--color-map-overlay-border)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        color: '#F5EFE3',
         boxShadow: 'var(--shadow-float)',
         minWidth: 240,
       }}
@@ -61,58 +60,61 @@ export default function LiveStatePanel() {
         <span
           className="w-1.5 h-1.5 rounded-full"
           style={{
-            background: isLive ? '#7DCB95' : '#FFB876',
+            background: isLive ? '#7DCB95' : 'var(--color-primary)',
             animation: isLive ? 'sun-pulse 2s ease-in-out infinite' : undefined,
           }}
         />
-        <span className="eyebrow" style={{ color: 'rgba(245,239,227,0.65)' }}>
+        <span className="eyebrow">
           {isLive ? 'In Ghent now' : 'Selected time'}
         </span>
       </div>
 
-      <p className="font-display tabular-nums" style={{
-        fontSize: '1.65rem', lineHeight: 1, letterSpacing: '-0.02em',
-        color: '#FFD9A8',
-      }}>
+      <p
+        className="font-display tabular-nums"
+        style={{
+          fontSize: '1.65rem',
+          lineHeight: 1,
+          letterSpacing: '-0.02em',
+          color: 'var(--color-primary)',
+        }}
+      >
         {time}
       </p>
-      <p className="text-xs mt-1" style={{ color: 'rgba(245,239,227,0.75)' }}>
-        {day}
-      </p>
+      <p className="text-xs mt-1 text-text-2">{day}</p>
 
-      <div className="my-3" style={{ height: 1, background: 'rgba(255,255,255,0.10)' }} />
+      <div className="my-3" style={{ height: 1, background: 'var(--color-border)' }} />
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
         {weather && (
           <>
             <div className="col-span-2 flex items-baseline gap-2">
               <span
-                className="font-display tabular-nums"
-                style={{ fontSize: '1.4rem', lineHeight: 1, color: '#F5EFE3', letterSpacing: '-0.02em' }}
+                className="font-display tabular-nums text-text-1"
+                style={{ fontSize: '1.4rem', lineHeight: 1, letterSpacing: '-0.02em' }}
               >
                 {Math.round(weather.temperature)}°
               </span>
-              <span style={{ color: 'rgba(245,239,227,0.70)', fontSize: '0.75rem' }}>{sky}</span>
+              <span className="text-text-2" style={{ fontSize: '0.75rem' }}>{sky}</span>
             </div>
-            <div className="flex items-center gap-1" style={{ color: 'rgba(245,239,227,0.70)' }}>
+            <div className="flex items-center gap-1 text-text-3">
               <span>Wind</span>
-              <span className="font-semibold tabular-nums" style={{ color: '#F5EFE3' }}>
+              <span className="font-semibold tabular-nums text-text-1">
                 {Math.round(weather.windspeed)}
               </span>
               <span style={{ fontSize: 10 }}>km/h</span>
             </div>
-            <div className="flex items-center gap-1" style={{ color: 'rgba(245,239,227,0.70)' }}>
+            <div className="flex items-center gap-1 text-text-3">
               <span>Cloud</span>
-              <span className="font-semibold tabular-nums" style={{ color: '#F5EFE3' }}>
+              <span className="font-semibold tabular-nums text-text-1">
                 {Math.round(weather.cloudCover)}%
               </span>
             </div>
           </>
         )}
         {altDeg != null && (
-          <div className="col-span-2 flex items-center gap-2 text-xs" style={{ color: 'rgba(245,239,227,0.70)' }}>
+          <div className="col-span-2 flex items-center gap-2 text-xs text-text-3">
             <span>Sun</span>
-            <span className="font-semibold tabular-nums" style={{ color: '#FFD9A8' }}>
+            <span className="font-semibold tabular-nums" style={{ color: 'var(--color-primary)' }}>
               {altDeg}° in {compass}
             </span>
           </div>

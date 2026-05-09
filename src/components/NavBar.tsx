@@ -18,7 +18,7 @@ function SunMark() {
       <defs>
         <radialGradient id="nav-sun-mark" cx="35%" cy="35%" r="65%">
           <stop offset="0%"   stopColor="#FFD075" />
-          <stop offset="100%" stopColor="#C4502A" />
+          <stop offset="100%" stopColor="#ED8A1F" />
         </radialGradient>
       </defs>
       <circle cx="12" cy="12" r="6" fill="url(#nav-sun-mark)" />
@@ -44,10 +44,12 @@ export default function NavBar() {
 
   return (
     <nav
-      className="sticky top-0 z-50 px-5 backdrop-blur-md"
+      className="sticky top-0 z-50 px-5"
       style={{
-        background: 'rgba(250,246,238,0.86)',
-        borderBottom: '1px solid var(--color-border)',
+        background: 'var(--color-map-overlay)',
+        borderBottom: '1px solid var(--color-map-overlay-border)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
       }}
     >
       <div className="flex items-center justify-between h-14 max-w-screen-2xl mx-auto">

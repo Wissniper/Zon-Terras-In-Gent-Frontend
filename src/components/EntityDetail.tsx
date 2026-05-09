@@ -117,7 +117,7 @@ export default function EntityDetail({
         <button
           onClick={() => navigate('/')}
           className="mt-4 px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
-          style={{ background: 'var(--color-primary)', color: '#fff' }}
+          style={{ background: 'var(--color-primary)', color: 'var(--color-on-primary)' }}
         >
           Back to map
         </button>
@@ -239,7 +239,7 @@ export default function EntityDetail({
                 onClick={() => navigate('/', { state: mapState })}
                 className="text-sm font-semibold px-5 py-3 rounded-full transition-all min-h-[44px] inline-flex items-center gap-2"
                 style={{
-                  background: 'var(--color-primary)', color: '#fff',
+                  background: 'var(--color-primary)', color: 'var(--color-on-primary)',
                   boxShadow: 'var(--shadow-amber)',
                 }}
                 onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
@@ -260,7 +260,7 @@ export default function EntityDetail({
                 rel={l.external ? 'noopener noreferrer' : undefined}
                 className="text-sm font-medium px-5 py-3 rounded-full transition-colors min-h-[44px] inline-flex items-center gap-2"
                 style={l.primary ? {
-                  background: 'var(--color-primary)', color: '#fff',
+                  background: 'var(--color-primary)', color: 'var(--color-on-primary)',
                   boxShadow: 'var(--shadow-amber)',
                 } : {
                   background: 'var(--color-surface)',

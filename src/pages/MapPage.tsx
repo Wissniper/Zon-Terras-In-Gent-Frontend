@@ -35,7 +35,7 @@ const INITIAL_VIEW = {
 const MARKER = {
   terras:     '#E5870A',
   restaurant: '#5C8FA8',
-  event:      '#C4502A',
+  event:      '#FF6B4A',
 };
 
 /* ─── Markers ─────────────────────────────────────── */
@@ -56,7 +56,7 @@ function TerrasMarkerSvg() {
             key={deg}
             x1={14 + 8 * Math.cos(r)}  y1={14 + 8 * Math.sin(r)}
             x2={14 + 12 * Math.cos(r)} y2={14 + 12 * Math.sin(r)}
-            stroke="#FFD9A8" strokeWidth="2" strokeLinecap="round"
+            stroke="#FFB554" strokeWidth="2" strokeLinecap="round"
           />
         );
       })}
@@ -91,18 +91,20 @@ function EventMarkerSvg() {
 function MarkerLabel({ children }: { children: string }) {
   return (
     <span
-      className="font-medium truncate max-w-[110px]"
+      className="font-medium truncate max-w-[110px] text-text-1"
       style={{
         marginTop: 4,
         fontSize: 10.5,
         fontWeight: 600,
-        color: '#F5EFE3',
-        background: 'rgba(26,22,17,0.78)',
+        background: 'var(--color-map-overlay)',
+        border: '1px solid var(--color-map-overlay-border)',
         padding: '2px 7px',
         borderRadius: 999,
-        backdropFilter: 'blur(4px)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         lineHeight: 1.4,
         letterSpacing: '0.01em',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
       }}
     >
       {children}
@@ -155,7 +157,7 @@ function PopupBody({ title, subtitle, intensity, ctaHref, ctaLabel = 'Visit webs
           rel="noreferrer"
           className="block text-center text-xs font-semibold rounded-lg transition-colors"
           style={{
-            color: '#FFFFFF',
+            color: 'var(--color-on-primary)',
             background: 'var(--color-primary)',
             padding: '8px 0',
             textDecoration: 'none',
@@ -196,8 +198,8 @@ function LayerToggle({ value, onChange }: { value: LayerFilter; onChange: (v: La
           style={{
             padding: '6px 13px',
             borderRadius: 999,
-            color: value === f ? '#1A1611' : '#F5EFE3',
-            background: value === f ? '#FFD9A8' : 'transparent',
+            color: value === f ? '#FFFFFF' : 'var(--color-text-2)',
+            background: value === f ? 'var(--color-primary)' : 'transparent',
           }}
         >
           {label}
@@ -419,8 +421,8 @@ export default function MapPage() {
         <button
           className="md:hidden absolute bottom-5 right-5 z-20 w-14 h-14 rounded-full flex items-center justify-center transition-transform active:scale-95"
           style={{
-            background: 'linear-gradient(135deg, #FFD075, #C4502A)',
-            color: '#FFFFFF',
+            background: 'linear-gradient(135deg, #FFD075, #ED8A1F)',
+            color: 'var(--color-on-primary)',
             boxShadow: 'var(--shadow-amber-lg)',
             border: '2px solid #FFFFFF',
           }}
@@ -456,7 +458,7 @@ export default function MapPage() {
             <button
               onClick={() => setTimelineOpen(false)}
               className="p-2 rounded-lg min-w-[40px] min-h-[40px] flex items-center justify-center"
-              style={{ color: '#F5EFE3' }}
+              style={{ color: 'var(--color-text-2)' }}
               aria-label="Close timeline"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -609,7 +611,7 @@ function SelectedPanel(props: SelectedProps) {
               className="flex-1 text-center text-sm font-semibold px-4 py-2.5 rounded-lg transition-all min-h-[44px] inline-flex items-center justify-center"
               style={{
                 background: 'var(--color-primary)',
-                color: '#FFFFFF',
+                color: 'var(--color-on-primary)',
                 boxShadow: 'var(--shadow-amber)',
               }}
             >

@@ -11,13 +11,38 @@ interface Props {
   style?: CSSProperties;
 }
 
+/** Pill tones use CSS variables so they adapt with light/dark mode. */
 const toneStyle: Record<Tone, CSSProperties> = {
-  neutral: { color: 'var(--color-text-3)', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' },
-  gold:    { color: '#8A4F0A', background: 'rgba(229,135,10,0.16)', border: '1px solid rgba(229,135,10,0.30)' },
-  terra:   { color: '#6B2A14', background: 'rgba(196,80,42,0.13)', border: '1px solid rgba(196,80,42,0.28)' },
-  sky:     { color: '#2D5970', background: 'rgba(92,143,168,0.14)', border: '1px solid rgba(92,143,168,0.28)' },
-  sage:    { color: '#4F6042', background: 'rgba(143,163,130,0.18)', border: '1px solid rgba(143,163,130,0.30)' },
-  cream:   { color: 'var(--color-text-2)', background: 'var(--color-cream)', border: '1px solid var(--color-border)' },
+  neutral: {
+    color: 'var(--color-text-2)',
+    background: 'var(--color-surface-2)',
+    border: '1px solid var(--color-border)',
+  },
+  gold: {
+    color: 'var(--color-primary)',
+    background: 'var(--color-primary-light)',
+    border: '1px solid var(--color-primary-border)',
+  },
+  terra: {
+    color: 'var(--color-coral)',
+    background: 'rgba(255,107,74,0.10)',
+    border: '1px solid rgba(255,107,74,0.28)',
+  },
+  sky: {
+    color: 'var(--color-sky)',
+    background: 'var(--color-sky-light)',
+    border: '1px solid rgba(74,138,171,0.28)',
+  },
+  sage: {
+    color: 'var(--color-sage)',
+    background: 'rgba(107,153,129,0.14)',
+    border: '1px solid rgba(107,153,129,0.30)',
+  },
+  cream: {
+    color: 'var(--color-text-2)',
+    background: 'var(--color-surface-2)',
+    border: '1px solid var(--color-border)',
+  },
 };
 
 /** Compact label used for category, day-delta, count chips. */
