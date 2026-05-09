@@ -15,6 +15,7 @@ import { useTerrasSunData } from '../hooks/useTerrasSunData';
 import { useRestaurantSunData } from '../hooks/useRestaurantSunData';
 import { useEventSunData } from '../hooks/useEventSunData';
 import { intensityColor } from '../utils/intensity';
+import AtmosphericLighting from '../components/AtmosphericLighting';
 import type { Terras, Restaurant, Event } from '../types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
@@ -382,39 +383,6 @@ export default function MapPage() {
     }
   }, [mapLoaded, location.state, terrasen, restaurants, events]);
 
-  useEffect(() => {
-    if (!mapLoaded || !sunPosition || !mapRef.current) return;
-
-    const map = mapRef.current.getMap() as MapboxMap;
-    const compassDeg = ((sunPosition.azimuth * 180) / Math.PI + 180) % 360;
-    const altitudeDeg = (sunPosition.altitude * 180) / Math.PI;
-    const polarDeg = 90 - altitudeDeg;
-
-    if (sunPosition.altitude > 0) {
-      map.setLights([
-        {
-          id: 'sun',
-          type: 'directional',
-          properties: {
-            direction: [compassDeg, polarDeg],
-            color: 'white',
-            intensity: Math.min(1, 0.4 + (altitudeDeg / 90) * 0.8),
-            'cast-shadows': true,
-            'shadow-intensity': 1,
-          },
-        },
-        {
-          id: 'ambient',
-          type: 'ambient',
-          properties: { color: 'white', intensity: 0.2 },
-        },
-      ]);
-    } else {
-      map.setLights([
-        { id: 'ambient', type: 'ambient', properties: { color: '#1a2744', intensity: 0.4 } },
-      ]);
-    }
-  }, [sunPosition, mapLoaded]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -434,6 +402,8 @@ export default function MapPage() {
           maxBounds={[3.65, 50.99, 3.82, 51.12]}
           minZoom={12}
         >
+          <AtmosphericLighting mapRef={mapRef} sunPosition={sunPosition} mapLoaded={mapLoaded} />
+
           {/* Terrace markers — gold sun */}
           {(layerFilter === 'terras' || layerFilter === 'all') &&
             terrasen.map((t) => (
