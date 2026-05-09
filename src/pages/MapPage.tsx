@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import Map, { Marker, Popup } from 'react-map-gl/mapbox';
+import Map, { Marker } from 'react-map-gl/mapbox';
 import type { MapRef, MarkerEvent } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
 import type { Map as MapboxMap } from 'mapbox-gl';
@@ -112,64 +112,6 @@ function MarkerLabel({ children }: { children: string }) {
   );
 }
 
-/* ─── Map popup ───────────────────────────────────── */
-
-interface PopupBodyProps {
-  title: string;
-  subtitle?: string;
-  intensity: number;
-  ctaHref?: string;
-  ctaLabel?: string;
-}
-
-function PopupBody({ title, subtitle, intensity, ctaHref, ctaLabel = 'Visit website' }: PopupBodyProps) {
-  const colour = intensityColor(intensity);
-  return (
-    <div style={{ padding: '14px 16px 14px', minWidth: 220 }}>
-      <p className="font-display font-semibold text-text-1" style={{ fontSize: 16, lineHeight: 1.2, marginBottom: 2 }}>
-        {title}
-      </p>
-      {subtitle && (
-        <p className="text-text-3" style={{ fontSize: 11.5, marginBottom: 12, lineHeight: 1.4 }}>
-          {subtitle}
-        </p>
-      )}
-      <div
-        className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl mb-3"
-        style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
-      >
-        <div>
-          <p className="eyebrow" style={{ fontSize: 9 }}>Sun now</p>
-          <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--color-text-1)' }}>
-            {intensityLabel(intensity)}
-          </p>
-        </div>
-        <span className="font-display tabular-nums" style={{
-          fontSize: 24, lineHeight: 1, color: colour, letterSpacing: '-0.02em',
-        }}>
-          {intensity}<span style={{ fontSize: 13 }}>%</span>
-        </span>
-      </div>
-      {ctaHref && (
-        <a
-          href={ctaHref}
-          target="_blank"
-          rel="noreferrer"
-          className="block text-center text-xs font-semibold rounded-lg transition-colors"
-          style={{
-            color: 'var(--color-on-primary)',
-            background: 'var(--color-primary)',
-            padding: '8px 0',
-            textDecoration: 'none',
-          }}
-        >
-          {ctaLabel} →
-        </a>
-      )}
-    </div>
-  );
-}
-
 /* ─── Layer toggle ────────────────────────────────── */
 
 function LayerToggle({ value, onChange }: { value: LayerFilter; onChange: (v: LayerFilter) => void }) {
@@ -251,16 +193,33 @@ export default function MapPage() {
     }
   }, [mapLoaded, location.state, terrasen, restaurants, events]);
 
-  const focusTerras = (uuid: string) => {
-    const t = terrasen.find((x) => x.uuid === uuid);
-    if (!t) return;
+  const flyToCoords = (coords: [number, number]) => {
+    if (!mapRef.current) return;
+    mapRef.current.flyTo({ center: coords, zoom: 17, duration: 900, essential: true });
+  };
+
+  const selectTerras = (t: Terras) => {
     setSelectedTerras(t);
     setSelectedRestaurant(null);
     setSelectedEvent(null);
-    if (mapRef.current) {
-      const [lng, lat] = t.location.coordinates;
-      mapRef.current.flyTo({ center: [lng, lat], zoom: 17, duration: 1000 });
-    }
+    flyToCoords(t.location.coordinates as [number, number]);
+  };
+  const selectRestaurant = (r: Restaurant) => {
+    setSelectedRestaurant(r);
+    setSelectedTerras(null);
+    setSelectedEvent(null);
+    flyToCoords(r.location.coordinates as [number, number]);
+  };
+  const selectEvent = (ev: Event) => {
+    setSelectedEvent(ev);
+    setSelectedTerras(null);
+    setSelectedRestaurant(null);
+    flyToCoords(ev.location.coordinates as [number, number]);
+  };
+
+  const focusTerras = (uuid: string) => {
+    const t = terrasen.find((x) => x.uuid === uuid);
+    if (t) selectTerras(t);
   };
 
   return (
@@ -293,7 +252,7 @@ export default function MapPage() {
                 anchor="center"
                 onClick={(e: MarkerEvent<MouseEvent>) => {
                   e.originalEvent.stopPropagation();
-                  setSelectedTerras(t);
+                  selectTerras(t);
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
@@ -302,24 +261,6 @@ export default function MapPage() {
                 </div>
               </Marker>
             ))}
-
-          {selectedTerras && (
-            <Popup
-              longitude={selectedTerras.location.coordinates[0]}
-              latitude={selectedTerras.location.coordinates[1]}
-              anchor="bottom"
-              offset={12}
-              onClose={() => setSelectedTerras(null)}
-              closeOnClick={false}
-            >
-              <PopupBody
-                title={selectedTerras.name}
-                subtitle={selectedTerras.address}
-                intensity={terrasSunData.intensity}
-                ctaHref={selectedTerras.url}
-              />
-            </Popup>
-          )}
 
           {/* Restaurants */}
           {(layerFilter === 'restaurants' || layerFilter === 'all') &&
@@ -331,7 +272,7 @@ export default function MapPage() {
                 anchor="center"
                 onClick={(e: MarkerEvent<MouseEvent>) => {
                   e.originalEvent.stopPropagation();
-                  setSelectedRestaurant(r);
+                  selectRestaurant(r);
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
@@ -340,24 +281,6 @@ export default function MapPage() {
                 </div>
               </Marker>
             ))}
-
-          {selectedRestaurant && (
-            <Popup
-              longitude={selectedRestaurant.location.coordinates[0]}
-              latitude={selectedRestaurant.location.coordinates[1]}
-              anchor="bottom"
-              offset={12}
-              onClose={() => setSelectedRestaurant(null)}
-              closeOnClick={false}
-            >
-              <PopupBody
-                title={selectedRestaurant.name}
-                subtitle={`${selectedRestaurant.cuisine ? selectedRestaurant.cuisine + ' · ' : ''}${selectedRestaurant.address}`}
-                intensity={restaurantSunData.intensity}
-                ctaHref={selectedRestaurant.website}
-              />
-            </Popup>
-          )}
 
           {/* Events */}
           {(layerFilter === 'events' || layerFilter === 'all') &&
@@ -369,7 +292,7 @@ export default function MapPage() {
                 anchor="center"
                 onClick={(e: MarkerEvent<MouseEvent>) => {
                   e.originalEvent.stopPropagation();
-                  setSelectedEvent(ev);
+                  selectEvent(ev);
                 }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
@@ -379,24 +302,6 @@ export default function MapPage() {
               </Marker>
             ))}
 
-          {selectedEvent && (
-            <Popup
-              longitude={selectedEvent.location.coordinates[0]}
-              latitude={selectedEvent.location.coordinates[1]}
-              anchor="bottom"
-              offset={12}
-              onClose={() => setSelectedEvent(null)}
-              closeOnClick={false}
-            >
-              <PopupBody
-                title={selectedEvent.title}
-                subtitle={selectedEvent.address}
-                intensity={eventSunData.intensity}
-                ctaHref={selectedEvent.url}
-                ctaLabel="More information"
-              />
-            </Popup>
-          )}
         </Map>
 
         {/* ── Floating panels ─────────────────────────── */}
