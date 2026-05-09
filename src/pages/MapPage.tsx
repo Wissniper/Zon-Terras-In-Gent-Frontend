@@ -340,6 +340,19 @@ export default function MapPage() {
   const { data: events = [] } = useEventsData();
   const sunPosition = useSunPosition();
   const location = useLocation();
+  
+  const nearbyEvents = useMemo(() => {
+  if (!selectedTerras || !events) return [];
+
+  return events.filter(ev => {
+    const [tLng, tLat] = selectedTerras.location.coordinates;
+    const [eLng, eLat] = ev.location.coordinates;
+    
+    // Simpele Pythagoras voor afstand (ongeveer 500 meter straal)
+    const distance = Math.sqrt(Math.pow(tLng - eLng, 2) + Math.pow(tLat - eLat, 2));
+    return distance < 0.005; // Dit komt ongeveer overeen met 500m-700m
+  }).slice(0, 3); // Pak de top 3
+}, [selectedTerras, events]);
 
   useEffect(() => {
     const state = location.state as { focusId?: string; type?: string } | null;
@@ -465,6 +478,39 @@ export default function MapPage() {
                   <span style={{ fontSize: 12, fontWeight: 700, color: intensityColor(selectedTerras.intensity), background: `${intensityColor(selectedTerras.intensity)}22`, padding: '2px 8px', borderRadius: 6 }}>
                     ☀ {selectedTerras.intensity}%
                   </span>
+                </div>
+
+                {/*Nearby Events Sectie in de Popup*/}
+                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                  <p style={{ 
+                    fontSize: '10px', 
+                    fontWeight: 700, 
+                    textTransform: 'uppercase', 
+                    color: 'var(--color-sidebar-brand)', 
+                    marginBottom: '6px',
+                    letterSpacing: '0.05em'
+                  }}>
+                    Nearby Events
+                  </p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {nearbyEvents.length > 0 ? (
+                      nearbyEvents.map(ev => (
+                        <div key={ev.uuid} className="flex items-start gap-2">
+                          <span style={{ color: MARKER_COLORS.event, fontSize: '10px' }}>★</span>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#fff', lineHeight: 1.2 }}>
+                              {ev.title}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <span style={{ fontSize: '11px', color: 'var(--color-sidebar-muted)', fontStyle: 'italic' }}>
+                        No events nearby
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {selectedTerras.url && (
                   <a
@@ -617,12 +663,31 @@ export default function MapPage() {
             </Popup>
           )}
         </Map>
-
+         
         {/* Legend — desktop right */}
         <div className="absolute top-4 right-4 z-10 hidden md:block fade-up fade-up-delay-1">
           <Legend />
         </div>
 
+        {/* Recenter Button */}
+        <button
+          onClick={() => {
+            mapRef.current?.flyTo({
+              center: [INITIAL_VIEW.longitude, INITIAL_VIEW.latitude],
+              zoom: INITIAL_VIEW.zoom,
+              pitch: INITIAL_VIEW.pitch,
+              bearing: INITIAL_VIEW.bearing,
+              duration: 1000
+            });
+          }}
+          className="absolute top-4 left-4 z-10 p-3 rounded-xl backdrop-blur-xl border border-[#2E3055] text-white hover:bg-[#F5A623]/20 transition-colors"
+          style={{ background: 'rgba(22, 24, 42, 0.85)' }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 12h18M12 3v18" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+        </button>
         {/* Layer toggle — bottom left */}
         <div
           className="absolute bottom-4 left-4 z-10 flex rounded-xl overflow-hidden"
