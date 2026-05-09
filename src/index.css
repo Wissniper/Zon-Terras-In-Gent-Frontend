@@ -10,55 +10,57 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surfaces — clean white stack with a faint warm hint */
-  --color-bg:          #FCFBF7;
-  --color-surface:     #FFFFFF;
-  --color-surface-2:   #F1F1ED;
-  --color-surface-3:   #E6E6E0;
-  --color-border:      #DEDED8;
-  --color-track:       #E6E6E0;
+  /* Surfaces — pale honey-tan stack. Visibly warm (light brown), but soft enough
+     to feel like vintage stationery rather than a coffee shop. */
+  --color-bg:          #EFE4CB;
+  --color-surface:     #F8F0DC;
+  --color-surface-2:   #E5D5B0;
+  --color-surface-3:   #D2BF93;
+  --color-border:      #D2BF93;
+  --color-track:       #DCC9A1;
 
-  /* Brand — vivid sun-gold + coral for variety */
-  --color-primary:        #ED8A1F;          /* deep marigold — pops against cool gray */
-  --color-primary-light:  #FFF0DA;
-  --color-primary-border: rgba(237,138,31,0.28);
-  --color-on-primary:     #15151B;          /* always-dark text on amber CTA — high contrast in both modes */
-  --color-gold:           #FFB627;          /* bright sun */
-  --color-coral:          #FF6B4A;          /* coral / dusk */
+  /* Brand — saturated burnt-orange that pops against the honey-tan canvas.
+     Deep enough to pass WCAG AA as text colour (≈6.8:1 on the page bg)
+     while staying unmistakably "sun orange", not brown. */
+  --color-primary:        #A85906;
+  --color-primary-light:  #FFEAC8;
+  --color-primary-border: rgba(168,89,6,0.36);
+  --color-on-primary:     #FFF6E5;          /* warm-near-white text on the primary CTA */
+  --color-gold:           #C8741A;          /* gold accent (markers, headings) */
+  --color-coral:          #C2421F;          /* deeper coral for events */
   --color-blush:          #FFCDB8;
-  --color-sage:           #6B9981;          /* fresh accent */
+  --color-sage:           #4F7560;          /* deeper sage so it reads on light tan */
 
   /* Differentiation accents */
   --color-sky:        #4A8AAB;
   --color-sky-light:  #E5EFF5;
   --color-terra:      #FF6B4A;              /* alias for coral */
 
-  /* Text — cool near-black on cool surfaces */
-  --color-text-1: #15151B;
-  --color-text-2: #525258;
-  --color-text-3: #93939A;
+  /* Text — warm near-black on the honey-tan surface */
+  --color-text-1: #2A1F0F;
+  --color-text-2: #5A4830;
+  --color-text-3: #8E7A5C;
 
-  /* Sidebar tokens kept for back-compat — light scheme */
-  --color-sidebar:         #F1F1ED;
-  --color-sidebar-surface: #FFFFFF;
-  --color-sidebar-border:  #DEDED8;
-  --color-sidebar-muted:   #93939A;
-  --color-sidebar-accent:  #525258;
-  --color-sidebar-text:    #15151B;
+  /* Sidebar tokens kept for back-compat — honey-tan scheme */
+  --color-sidebar:         #E5D5B0;
+  --color-sidebar-surface: #F8F0DC;
+  --color-sidebar-border:  #D2BF93;
+  --color-sidebar-muted:   #8E7A5C;
+  --color-sidebar-accent:  #5A4830;
+  --color-sidebar-text:    #2A1F0F;
   --color-sidebar-brand:   #ED8A1F;
 
-  /* Map overlay — translucent SURFACE for floating panels over Mapbox.
-     Light mode: light glass, dark text reads naturally.
-     Dark  mode: dark glass, light text reads naturally.
-     Either way, text inside uses --color-text-* and adapts automatically. */
-  --color-map-overlay:        rgba(255,255,255,0.92);
-  --color-map-overlay-border: rgba(20,20,26,0.10);
+  /* Map overlay — translucent surface shared by NavBar, SunTimeline, and the
+     floating panels over Mapbox. Tinted light tan so chrome reads as part of
+     the page, not pasted on. */
+  --color-map-overlay:        rgba(247,237,213,0.92);
+  --color-map-overlay-border: rgba(80,60,40,0.12);
 
-  /* Shadows — neutral cool grey, not brown */
-  --shadow-card:       0 2px 14px rgba(20,20,26,0.06);
-  --shadow-card-hover: 0 8px 28px rgba(20,20,26,0.12);
-  --shadow-soft:       0 1px 12px rgba(20,20,26,0.06);
-  --shadow-float:      0 12px 40px rgba(20,20,26,0.14);
+  /* Shadows — warm umber to harmonise with the tan surface */
+  --shadow-card:       0 2px 14px rgba(80,60,40,0.08);
+  --shadow-card-hover: 0 8px 28px rgba(80,60,40,0.16);
+  --shadow-soft:       0 1px 12px rgba(80,60,40,0.08);
+  --shadow-float:      0 12px 40px rgba(80,60,40,0.18);
   --shadow-amber:      0 4px 22px rgba(237,138,31,0.30);
   --shadow-amber-lg:   0 10px 40px rgba(237,138,31,0.36);
 }
@@ -252,12 +254,12 @@ body::before {
 }
 
 /* ── Editorial backdrop ─────────────────────────────
-   A soft gold-light wash, low intensity, only at the corners — gives the
-   page a sense of sun-streaked but stays clean and bright. */
+   A soft warm-light wash on a cool base — sun-on-overcast-sky feel, the
+   amber brand pop reads against the dusty cool gray. */
 .bg-atmospheric {
   background:
-    radial-gradient(ellipse 80% 50% at 90% -10%, rgba(255,182,39,0.16), transparent 70%),
-    radial-gradient(ellipse 60% 40% at -10% 110%, rgba(237,138,31,0.08), transparent 70%),
+    radial-gradient(ellipse 80% 50% at 90% -10%, rgba(255,182,39,0.18), transparent 70%),
+    radial-gradient(ellipse 60% 40% at -10% 110%, rgba(237,138,31,0.10), transparent 70%),
     var(--color-bg);
 }
 [data-theme="dark"] .bg-atmospheric {
