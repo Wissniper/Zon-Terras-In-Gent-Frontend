@@ -26,30 +26,24 @@ interface SunSummary {
   azimuthDeg: number;
   goldenHourEvening?: { start: Date; end: Date };
   goldenHourMorning?: { start: Date; end: Date };
+  /** When the spot first crosses 40% intensity today, if any. */
+  bestTimeStart?: Date;
+  /** When intensity drops back below 40% today, if any. */
+  bestTimeEnd?: Date;
 }
 
 interface Props {
   kind: Kind;
-  /** Loading flag from the parent's react-query. */
   isLoading: boolean;
   isError: boolean;
-  /** Headline (terras name, restaurant name, event title). */
   title?: string;
-  /** Address — sub-headline. */
   address?: string;
-  /** Right-rail category pill (e.g. cuisine for restaurants). */
   category?: { label: string; tone: 'gold' | 'sky' | 'terra' | 'sage' };
-  /** Optional descriptive paragraph. */
   description?: string;
-  /** Sun intensity 0-100. Omit to skip the hero ring (e.g. for events without forecast). */
   intensity?: number;
-  /** Live sun-position summary; rendered as a small stat strip below the ring. */
   sun?: SunSummary;
-  /** Specific detail rows below the hero (phone, hours, takeaway, dates...). */
   rows?: DetailRow[];
-  /** Action chips: "View on map", "Visit website", "OSM" etc. */
   links?: DetailLink[];
-  /** Map deep-link state for the "View on map" button. */
   mapState?: { focusId: string; type: 'terras' | 'restaurant' | 'event' };
 }
 
@@ -64,19 +58,40 @@ function fmtTime(d: Date): string {
 }
 
 /**
+ * Build the editorial "When to go" sentence from the available sun data.
+ * Falls back to a generic line when we don't have intensity-vs-time data.
+ */
+function whenToGoLine(sun: SunSummary | undefined, intensity: number | undefined): string | null {
+  if (!sun) return null;
+  if (sun.bestTimeStart && sun.bestTimeEnd) {
+    return `Catch the sun here from ${fmtTime(sun.bestTimeStart)} to ${fmtTime(sun.bestTimeEnd)} today.`;
+  }
+  if (sun.goldenHourEvening) {
+    return `Golden hour lands at ${fmtTime(sun.goldenHourEvening.start)} — stay through to ${fmtTime(sun.goldenHourEvening.end)}.`;
+  }
+  if (intensity != null) {
+    if (intensity >= 70) return 'Full sun right now — pull up a chair.';
+    if (intensity >= 40) return 'Partial sun right now. Comfortable for a quick coffee.';
+    if (intensity >= 1)  return 'Mostly shaded right now. Better light later in the day.';
+    return 'In shadow right now. The sun is below the horizon or fully blocked.';
+  }
+  return null;
+}
+
+/**
  * One detail surface for terraces, restaurants and events.
  *
  * Layout:
- *   • Soft atmospheric backdrop (cream + warm radial glow).
+ *   • Soft atmospheric backdrop.
  *   • Headline + address, with a category pill on the right.
- *   • Centred IntensityRing as the hero ("how sunny is it right now?").
- *   • Sun stat strip (altitude, golden hour) when available.
- *   • Optional description paragraph.
- *   • Detail rows (phone, hours, dates...).
+ *   • Single-line editorial answer ("Catch the sun here from 16:00 to 19:30").
+ *   • Centred intensity ring.
+ *   • Optional sun stat strip (altitude, azimuth, golden hour).
+ *   • Optional descriptive paragraph.
+ *   • Optional detail rows (phone, hours, dates).
  *   • Action chips at the bottom.
  *
- * Replaces TerrasDetailPage / RestaurantDetailPage / EventDetailPage which
- * were 95% the same component with diverging inline styles.
+ * Replaces the three near-identical detail pages with one config-driven view.
  */
 export default function EntityDetail({
   kind, isLoading, isError, title, address, category, description,
@@ -110,36 +125,44 @@ export default function EntityDetail({
     );
   }
 
+  const editorialLine = whenToGoLine(sun, intensity);
+
   return (
     <div className="flex-1 overflow-y-auto bg-atmospheric">
-      <div className="max-w-2xl mx-auto px-5 sm:px-8 py-6">
-
+      <div className="max-w-2xl mx-auto px-5 sm:px-8 py-8">
         <BackButton />
 
         {/* HERO ───────────────────────────────────────── */}
-        <Card variant="surface" radius="2xl" padding="lg" className="fade-up mt-3">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="font-display font-semibold text-text-1 text-fluid-3xl leading-[1.05] tracking-tight">
-                {title}
-              </h1>
-              {address && (
-                <p className="text-sm text-text-3 mt-2">{address}</p>
-              )}
-            </div>
-            {category && (
-              <Pill tone={category.tone} size="md" className="shrink-0 mt-1 capitalize">
-                {category.label}
-              </Pill>
-            )}
-          </div>
+        <article className="mt-3 fade-up">
+          {category && (
+            <Pill tone={category.tone} className="capitalize mb-4">
+              {category.label}
+            </Pill>
+          )}
 
-          {/* Intensity hero ring */}
+          <h1 className="font-display font-semibold text-text-1 leading-[1.02] text-fluid-hero tracking-tight">
+            {title}
+          </h1>
+
+          {address && (
+            <p className="text-text-3 mt-3 text-fluid-base">{address}</p>
+          )}
+
+          {/* Editorial answer line */}
+          {editorialLine && (
+            <p
+              className="font-display text-text-1 mt-7 leading-snug fade-up fade-up-delay-1"
+              style={{ fontSize: '1.4rem', maxWidth: '32ch' }}
+            >
+              {editorialLine}
+            </p>
+          )}
+
+          {/* Intensity ring */}
           {intensity != null && (
-            <div className="mt-8 flex flex-col items-center fade-up fade-up-delay-1">
+            <div className="mt-9 flex flex-col items-center fade-up fade-up-delay-2">
               <IntensityRing value={intensity} size={220} caption="right now" />
 
-              {/* Sun stat strip — only when we have the data */}
               {sun && (
                 <div className="grid grid-cols-2 gap-2.5 w-full mt-7">
                   <Stat label="Sun altitude" value={`${Math.round(sun.altitudeDeg)}°`} />
@@ -147,7 +170,7 @@ export default function EntityDetail({
                   {sun.goldenHourMorning && (
                     <Stat
                       label="Morning gold"
-                      value={`${fmtTime(sun.goldenHourMorning.start)}`}
+                      value={fmtTime(sun.goldenHourMorning.start)}
                       sub={`until ${fmtTime(sun.goldenHourMorning.end)}`}
                       emphasis="highlight"
                     />
@@ -155,7 +178,7 @@ export default function EntityDetail({
                   {sun.goldenHourEvening && (
                     <Stat
                       label="Evening gold"
-                      value={`${fmtTime(sun.goldenHourEvening.start)}`}
+                      value={fmtTime(sun.goldenHourEvening.start)}
                       sub={`until ${fmtTime(sun.goldenHourEvening.end)}`}
                       emphasis="highlight"
                     />
@@ -165,49 +188,56 @@ export default function EntityDetail({
             </div>
           )}
 
-          {/* Description */}
           {description && (
-            <p className="text-text-2 leading-relaxed mt-7 text-fluid-base">
-              {description}
-            </p>
+            <>
+              <div className="editorial-rule my-9" />
+              <p className="text-text-2 leading-relaxed text-fluid-lg max-w-prose">
+                {description}
+              </p>
+            </>
           )}
-        </Card>
+        </article>
 
         {/* DETAIL ROWS ─────────────────────────────────── */}
         {rows && rows.length > 0 && (
-          <Card variant="surface" radius="2xl" padding="lg" className="fade-up fade-up-delay-2 mt-4">
+          <section className="mt-10 fade-up fade-up-delay-3">
             <p className="eyebrow mb-3">Details</p>
-            <div className="divide-y" style={{ borderColor: 'var(--color-border)' }}>
-              {rows.map((row, i) => (
-                <div key={i} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0"
-                     style={{ borderTop: i === 0 ? 'none' : '1px solid var(--color-border)' }}>
-                  <span className="eyebrow shrink-0 pt-0.5" style={{ minWidth: 80 }}>{row.label}</span>
-                  {row.href ? (
-                    <a
-                      href={row.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium text-right break-words transition-colors"
-                      style={{ color: 'var(--color-primary)' }}
-                    >
-                      {row.value}
-                    </a>
-                  ) : (
-                    <span className="text-sm text-text-1 text-right break-words">{row.value}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </Card>
+            <Card variant="surface" radius="2xl" padding="lg">
+              <div>
+                {rows.map((row, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                    style={i === 0 ? undefined : { borderTop: '1px solid var(--color-border)' }}
+                  >
+                    <span className="eyebrow shrink-0 pt-0.5" style={{ minWidth: 90 }}>{row.label}</span>
+                    {row.href ? (
+                      <a
+                        href={row.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-medium text-right break-words transition-colors"
+                        style={{ color: 'var(--color-primary)' }}
+                      >
+                        {row.value}
+                      </a>
+                    ) : (
+                      <span className="text-sm text-text-1 text-right break-words">{row.value}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </section>
         )}
 
-        {/* ACTION CHIPS ────────────────────────────────── */}
+        {/* ACTIONS ─────────────────────────────────────── */}
         {(mapState || (links && links.length > 0)) && (
-          <div className="flex flex-wrap gap-2.5 mt-5 fade-up fade-up-delay-3">
+          <div className="flex flex-wrap gap-2.5 mt-8 fade-up fade-up-delay-3">
             {mapState && (
               <button
                 onClick={() => navigate('/', { state: mapState })}
-                className="text-sm font-medium px-4 py-2.5 rounded-lg transition-all min-h-[44px] flex items-center gap-2"
+                className="text-sm font-semibold px-5 py-3 rounded-full transition-all min-h-[44px] inline-flex items-center gap-2"
                 style={{
                   background: 'var(--color-primary)', color: '#fff',
                   boxShadow: 'var(--shadow-amber)',
@@ -228,7 +258,7 @@ export default function EntityDetail({
                 href={l.href}
                 target={l.external ? '_blank' : undefined}
                 rel={l.external ? 'noopener noreferrer' : undefined}
-                className="text-sm font-medium px-4 py-2.5 rounded-lg transition-colors min-h-[44px] flex items-center gap-2"
+                className="text-sm font-medium px-5 py-3 rounded-full transition-colors min-h-[44px] inline-flex items-center gap-2"
                 style={l.primary ? {
                   background: 'var(--color-primary)', color: '#fff',
                   boxShadow: 'var(--shadow-amber)',
@@ -250,7 +280,7 @@ export default function EntityDetail({
           </div>
         )}
 
-        <div className="h-10" />
+        <div className="h-14" />
       </div>
     </div>
   );

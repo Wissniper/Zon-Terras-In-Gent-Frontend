@@ -1,85 +1,34 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import Sidebar from './components/Sidebar';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import NavBar from './components/NavBar';
 import OfflineIndicator from './components/OfflineIndicator';
 import MapPage from './pages/MapPage';
 import TerrasDetailPage from './pages/TerrasDetailPage';
 import RestaurantDetailPage from './pages/RestaurantDetailPage';
 import EventDetailPage from './pages/EventDetailPage';
 import SearchPage from './pages/SearchPage';
-import { Navigate } from 'react-router-dom';
 
-function MobileHeader({ onOpen }: { onOpen: () => void }) {
-  const location = useLocation();
-  const title =
-    location.pathname === '/' ? 'Map' :
-    location.pathname === '/discover' || location.pathname === '/search' ? 'Discover' :
-    location.pathname.startsWith('/terrasen') ? 'Terrace' :
-    location.pathname.startsWith('/restaurants') ? 'Restaurant' :
-    location.pathname.startsWith('/events') ? 'Event' : 'Sun Seeker';
-
-  return (
-    <header
-      className="md:hidden shrink-0 flex items-center gap-3 px-4 h-12"
-      style={{ background: 'var(--color-sidebar)', borderBottom: '1px solid var(--color-sidebar-border)' }}
-    >
-      <button
-        onClick={onOpen}
-        className="p-2 rounded-lg transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-        style={{ color: 'var(--color-sidebar-muted)' }}
-        aria-label="Open menu"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-      </button>
-      <span className="font-display text-sm font-semibold" style={{ color: 'var(--color-sidebar-brand)' }}>{title}</span>
-    </header>
-  );
-}
-
+/**
+ * Layout: a single sticky top NavBar + full-bleed content area.
+ *
+ * The previous left-rail Sidebar has been removed: its content (weather, top-N
+ * sunny terraces) now lives inside MapPage as floating panels — that's the
+ * actual context where it's useful — and the sidebar's nav links collapsed
+ * into the top NavBar.
+ */
 function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  useEffect(() => {
-    document.body.style.overflow = sidebarOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [sidebarOpen]);
-
   return (
-    <div className="flex h-screen bg-bg text-text-1 overflow-hidden">
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 md:hidden"
-          style={{ background: 'rgba(21,15,8,0.6)', backdropFilter: 'blur(2px)' }}
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      <div
-        className={`
-          fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-in-out
-          md:static md:translate-x-0 md:z-auto md:transition-none
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}
-      >
-        <Sidebar onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <MobileHeader onOpen={() => setSidebarOpen(true)} />
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: 'var(--color-bg)' }}>
+      <NavBar />
+      <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         <Routes>
-          <Route path="/" element={<MapPage />} />
-          <Route path="/terrasen/:id" element={<TerrasDetailPage />} />
+          <Route path="/"            element={<MapPage />} />
+          <Route path="/terrasen/:id"    element={<TerrasDetailPage />} />
           <Route path="/restaurants/:id" element={<RestaurantDetailPage />} />
-          <Route path="/events/:id" element={<EventDetailPage />} />
-          <Route path="/discover" element={<SearchPage />} />
-          <Route path="/search"   element={<Navigate to="/discover" replace />} />
+          <Route path="/events/:id"      element={<EventDetailPage />} />
+          <Route path="/discover"        element={<SearchPage />} />
+          <Route path="/search"          element={<Navigate to="/discover" replace />} />
         </Routes>
       </main>
-
       <OfflineIndicator />
     </div>
   );

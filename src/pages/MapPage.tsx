@@ -15,6 +15,8 @@ import { useEventSunData } from '../hooks/useEventSunData';
 import { intensityColor, intensityLabel } from '../utils/intensity';
 import AtmosphericLighting from '../components/AtmosphericLighting';
 import SunTimeline from '../components/SunTimeline';
+import LiveStatePanel from '../components/map/LiveStatePanel';
+import SunniestNowPanel from '../components/map/SunniestNowPanel';
 import Pill from '../components/ui/Pill';
 import type { Terras, Restaurant, Event } from '../types';
 
@@ -31,16 +33,16 @@ const INITIAL_VIEW = {
 };
 
 const MARKER = {
-  terras:     '#E5870A', // gold
-  restaurant: '#5C8FA8', // dusty sky
-  event:      '#C4502A', // terracotta
+  terras:     '#E5870A',
+  restaurant: '#5C8FA8',
+  event:      '#C4502A',
 };
 
 /* ─── Markers ─────────────────────────────────────── */
 
 function TerrasMarkerSvg() {
   return (
-    <svg width="28" height="28" viewBox="0 0 28 28" style={{ filter: 'drop-shadow(0 2px 4px rgba(42,24,16,0.55))' }}>
+    <svg width="28" height="28" viewBox="0 0 28 28" style={{ filter: 'drop-shadow(0 2px 4px rgba(26,22,17,0.55))' }}>
       <defs>
         <radialGradient id="t-sun" cx="35%" cy="35%" r="65%">
           <stop offset="0%" stopColor="#FFD075" />
@@ -65,7 +67,7 @@ function TerrasMarkerSvg() {
 
 function RestaurantMarkerSvg() {
   return (
-    <svg width="24" height="26" viewBox="0 0 24 26" style={{ filter: 'drop-shadow(0 2px 4px rgba(42,24,16,0.55))' }}>
+    <svg width="24" height="26" viewBox="0 0 24 26" style={{ filter: 'drop-shadow(0 2px 4px rgba(26,22,17,0.55))' }}>
       <rect x="1" y="1" width="22" height="24" rx="7" fill={MARKER.restaurant} stroke="white" strokeWidth="1.6" />
       <line x1="8.5" y1="6" x2="8.5" y2="10" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
       <line x1="11"  y1="6" x2="11"  y2="10" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
@@ -77,7 +79,7 @@ function RestaurantMarkerSvg() {
 
 function EventMarkerSvg() {
   return (
-    <svg width="26" height="26" viewBox="0 0 26 26" style={{ filter: 'drop-shadow(0 2px 4px rgba(42,24,16,0.55))' }}>
+    <svg width="26" height="26" viewBox="0 0 26 26" style={{ filter: 'drop-shadow(0 2px 4px rgba(26,22,17,0.55))' }}>
       <polygon
         points="13,2 15.6,9.5 23.5,9.7 17.3,14.7 19.5,22 13,17.8 6.5,22 8.7,14.7 2.5,9.7 10.4,9.5"
         fill={MARKER.event} stroke="white" strokeWidth="1.4" strokeLinejoin="round"
@@ -89,13 +91,13 @@ function EventMarkerSvg() {
 function MarkerLabel({ children }: { children: string }) {
   return (
     <span
-      className="font-medium tabular-nums truncate max-w-[110px]"
+      className="font-medium truncate max-w-[110px]"
       style={{
         marginTop: 4,
         fontSize: 10.5,
         fontWeight: 600,
-        color: '#F8EDD8',
-        background: 'rgba(42,24,16,0.78)',
+        color: '#F5EFE3',
+        background: 'rgba(26,22,17,0.78)',
         padding: '2px 7px',
         borderRadius: 999,
         backdropFilter: 'blur(4px)',
@@ -108,7 +110,7 @@ function MarkerLabel({ children }: { children: string }) {
   );
 }
 
-/* ─── Popup body ──────────────────────────────────── */
+/* ─── Map popup ───────────────────────────────────── */
 
 interface PopupBodyProps {
   title: string;
@@ -117,30 +119,33 @@ interface PopupBodyProps {
   ctaHref?: string;
   ctaLabel?: string;
 }
+
 function PopupBody({ title, subtitle, intensity, ctaHref, ctaLabel = 'Visit website' }: PopupBodyProps) {
   const colour = intensityColor(intensity);
   return (
-    <div style={{ padding: '14px 16px 14px', minWidth: 200 }}>
-      <p className="font-display font-semibold text-text-1" style={{ fontSize: 15, lineHeight: 1.25, marginBottom: 2 }}>
+    <div style={{ padding: '14px 16px 14px', minWidth: 220 }}>
+      <p className="font-display font-semibold text-text-1" style={{ fontSize: 16, lineHeight: 1.2, marginBottom: 2 }}>
         {title}
       </p>
       {subtitle && (
-        <p className="text-text-3" style={{ fontSize: 11.5, marginBottom: 10, lineHeight: 1.45 }}>
+        <p className="text-text-3" style={{ fontSize: 11.5, marginBottom: 12, lineHeight: 1.4 }}>
           {subtitle}
         </p>
       )}
       <div
-        className="flex items-center justify-between gap-3 px-2.5 py-2 rounded-xl mb-2.5"
+        className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl mb-3"
         style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
       >
         <div>
-          <p className="eyebrow" style={{ fontSize: 9.5 }}>Sun now</p>
-          <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--color-text-2)' }}>
+          <p className="eyebrow" style={{ fontSize: 9 }}>Sun now</p>
+          <p className="text-xs font-semibold mt-0.5" style={{ color: 'var(--color-text-1)' }}>
             {intensityLabel(intensity)}
           </p>
         </div>
-        <span className="font-display tabular-nums" style={{ fontSize: 22, lineHeight: 1, color: colour, letterSpacing: '-0.02em' }}>
-          {intensity}<span style={{ fontSize: 12 }}>%</span>
+        <span className="font-display tabular-nums" style={{
+          fontSize: 24, lineHeight: 1, color: colour, letterSpacing: '-0.02em',
+        }}>
+          {intensity}<span style={{ fontSize: 13 }}>%</span>
         </span>
       </div>
       {ctaHref && (
@@ -152,7 +157,7 @@ function PopupBody({ title, subtitle, intensity, ctaHref, ctaLabel = 'Visit webs
           style={{
             color: '#FFFFFF',
             background: 'var(--color-primary)',
-            padding: '7px 0',
+            padding: '8px 0',
             textDecoration: 'none',
           }}
         >
@@ -163,13 +168,51 @@ function PopupBody({ title, subtitle, intensity, ctaHref, ctaLabel = 'Visit webs
   );
 }
 
+/* ─── Layer toggle ────────────────────────────────── */
+
+function LayerToggle({ value, onChange }: { value: LayerFilter; onChange: (v: LayerFilter) => void }) {
+  const items: { f: LayerFilter; label: string }[] = [
+    { f: 'all',         label: 'All' },
+    { f: 'terras',      label: 'Terraces' },
+    { f: 'restaurants', label: 'Food' },
+    { f: 'events',      label: 'Events' },
+  ];
+  return (
+    <div
+      className="flex items-center gap-0.5 rounded-full p-1"
+      style={{
+        background: 'var(--color-map-overlay)',
+        border: '1px solid var(--color-map-overlay-border)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: 'var(--shadow-float)',
+      }}
+    >
+      {items.map(({ f, label }) => (
+        <button
+          key={f}
+          onClick={() => onChange(f)}
+          className="text-[11px] font-semibold tracking-wide transition-all"
+          style={{
+            padding: '6px 13px',
+            borderRadius: 999,
+            color: value === f ? '#1A1611' : '#F5EFE3',
+            background: value === f ? '#FFD9A8' : 'transparent',
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* ─── Page ────────────────────────────────────────── */
 
 export default function MapPage() {
   const mapRef = useRef<MapRef>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
-  const [legendOpen, setLegendOpen] = useState(false);
   const [selectedTerras, setSelectedTerras] = useState<Terras | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -183,7 +226,7 @@ export default function MapPage() {
   const eventSunData = useEventSunData(selectedEvent?.uuid ?? null);
   const location = useLocation();
 
-  // Deep-link: focus a specific entity when arriving from a detail page.
+  // Deep-link from a detail page → focus that entity on the map.
   useEffect(() => {
     const state = location.state as { focusId?: string; type?: string } | null;
     if (!state?.focusId || !mapLoaded) return;
@@ -205,6 +248,18 @@ export default function MapPage() {
       mapRef.current.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
     }
   }, [mapLoaded, location.state, terrasen, restaurants, events]);
+
+  const focusTerras = (uuid: string) => {
+    const t = terrasen.find((x) => x.uuid === uuid);
+    if (!t) return;
+    setSelectedTerras(t);
+    setSelectedRestaurant(null);
+    setSelectedEvent(null);
+    if (mapRef.current) {
+      const [lng, lat] = t.location.coordinates;
+      mapRef.current.flyTo({ center: [lng, lat], zoom: 17, duration: 1000 });
+    }
+  };
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
@@ -342,107 +397,31 @@ export default function MapPage() {
           )}
         </Map>
 
-        {/* Layer chip — top right */}
-        <div className="absolute top-4 right-4 z-10 fade-up">
-          <div
-            className="flex items-center gap-1 rounded-full p-1"
-            style={{
-              background: 'var(--color-map-overlay)',
-              border: '1px solid var(--color-map-overlay-border)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              boxShadow: 'var(--shadow-float)',
-            }}
-          >
-            {([
-              { f: 'all',         label: 'All' },
-              { f: 'terras',      label: 'Terraces' },
-              { f: 'restaurants', label: 'Food' },
-              { f: 'events',      label: 'Events' },
-            ] as const).map(({ f, label }) => (
-              <button
-                key={f}
-                onClick={() => setLayerFilter(f)}
-                className="text-[11px] font-semibold tracking-wide transition-all"
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: 999,
-                  color: layerFilter === f ? '#2A1810' : '#F0E0C5',
-                  background: layerFilter === f ? '#FFD9A8' : 'transparent',
-                }}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+        {/* ── Floating panels ─────────────────────────── */}
+
+        {/* Top-left: live state */}
+        <div className="hidden md:block absolute top-5 left-5 z-10 max-w-[260px]">
+          <LiveStatePanel />
         </div>
 
-        {/* Legend hint button — top right, slightly below */}
-        <div className="absolute top-[64px] right-4 z-10 fade-up fade-up-delay-1">
-          <button
-            onClick={() => setLegendOpen((o) => !o)}
-            className="w-9 h-9 rounded-full flex items-center justify-center transition-all"
-            style={{
-              background: 'var(--color-map-overlay)',
-              border: '1px solid var(--color-map-overlay-border)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              color: '#F0E0C5',
-              boxShadow: 'var(--shadow-soft)',
-            }}
-            aria-label="Show legend"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="16" x2="12" y2="12" />
-              <line x1="12" y1="8" x2="12.01" y2="8" />
-            </svg>
-          </button>
+        {/* Top-right: layer toggle on top, leaderboard below */}
+        <div className="hidden md:flex absolute top-5 right-5 z-10 flex-col items-end gap-3">
+          <LayerToggle value={layerFilter} onChange={setLayerFilter} />
+          <SunniestNowPanel onPick={focusTerras} />
+        </div>
 
-          {legendOpen && (
-            <div
-              className="absolute right-0 mt-2 w-56 rounded-2xl p-4 fade-up"
-              style={{
-                background: 'var(--color-map-overlay)',
-                border: '1px solid var(--color-map-overlay-border)',
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                color: '#F0E0C5',
-                boxShadow: 'var(--shadow-float)',
-              }}
-            >
-              <p className="eyebrow mb-3" style={{ color: '#FFD9A8' }}>Sun intensity</p>
-              <div className="h-1.5 rounded-full mb-2" style={{ background: 'linear-gradient(to right, #8B7758, #C4502A, #E5870A)' }} />
-              <div className="flex justify-between text-[10.5px] mb-4 opacity-80">
-                <span>Shaded</span>
-                <span>Full sun</span>
-              </div>
-              <p className="eyebrow mb-2" style={{ color: '#FFD9A8' }}>Markers</p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2.5 text-xs">
-                  <span className="w-3 h-3 rounded-full shrink-0" style={{ background: MARKER.terras }} />
-                  Terraces
-                </div>
-                <div className="flex items-center gap-2.5 text-xs">
-                  <span className="w-3 h-3 rounded shrink-0" style={{ background: MARKER.restaurant, borderRadius: 4 }} />
-                  Restaurants
-                </div>
-                <div className="flex items-center gap-2.5 text-xs">
-                  <span className="w-3 h-3 shrink-0" style={{ background: MARKER.event, clipPath: 'polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)' }} />
-                  Events
-                </div>
-              </div>
-            </div>
-          )}
+        {/* Mobile-only: compact layer toggle pinned top */}
+        <div className="md:hidden absolute top-3 left-1/2 -translate-x-1/2 z-10">
+          <LayerToggle value={layerFilter} onChange={setLayerFilter} />
         </div>
 
         {/* Mobile timeline FAB */}
         <button
-          className="md:hidden absolute bottom-4 right-4 z-20 w-14 h-14 rounded-full flex items-center justify-center transition-transform active:scale-95"
+          className="md:hidden absolute bottom-5 right-5 z-20 w-14 h-14 rounded-full flex items-center justify-center transition-transform active:scale-95"
           style={{
             background: 'linear-gradient(135deg, #FFD075, #C4502A)',
             color: '#FFFFFF',
-            boxShadow: 'var(--shadow-amber-lg, var(--shadow-amber))',
+            boxShadow: 'var(--shadow-amber-lg)',
             border: '2px solid #FFFFFF',
           }}
           onClick={() => setTimelineOpen(true)}
@@ -458,7 +437,7 @@ export default function MapPage() {
         {timelineOpen && (
           <div
             className="md:hidden fixed inset-0 z-40"
-            style={{ background: 'rgba(42,24,16,0.55)', backdropFilter: 'blur(3px)' }}
+            style={{ background: 'rgba(26,22,17,0.55)', backdropFilter: 'blur(3px)' }}
             onClick={() => setTimelineOpen(false)}
           />
         )}
@@ -466,13 +445,18 @@ export default function MapPage() {
           className={`md:hidden fixed inset-y-0 right-0 z-50 w-32 flex flex-col transition-transform duration-300 ease-in-out ${
             timelineOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
-          style={{ background: 'var(--color-sidebar)', borderLeft: '1px solid var(--color-sidebar-border)', boxShadow: 'var(--shadow-float)' }}
+          style={{
+            background: 'var(--color-map-overlay)',
+            backdropFilter: 'blur(20px)',
+            borderLeft: '1px solid var(--color-map-overlay-border)',
+            boxShadow: 'var(--shadow-float)',
+          }}
         >
           <div className="flex justify-end px-2 pt-2">
             <button
               onClick={() => setTimelineOpen(false)}
               className="p-2 rounded-lg min-w-[40px] min-h-[40px] flex items-center justify-center"
-              style={{ color: 'var(--color-sidebar-muted)' }}
+              style={{ color: '#F5EFE3' }}
               aria-label="Close timeline"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -484,7 +468,7 @@ export default function MapPage() {
           <SunTimeline orientation="vertical" />
         </div>
 
-        {/* Selected entity bottom-sheet (mobile) / right-rail (desktop) */}
+        {/* Selected entity panel */}
         <SelectedPanel
           terras={selectedTerras}
           restaurant={selectedRestaurant}
@@ -498,7 +482,7 @@ export default function MapPage() {
         />
       </div>
 
-      {/* Desktop timeline — fixed at the bottom */}
+      {/* Desktop timeline — load-bearing bottom panel */}
       <div className="hidden md:block">
         <SunTimeline orientation="horizontal" />
       </div>
@@ -506,7 +490,7 @@ export default function MapPage() {
   );
 }
 
-/* ─── Selected entity floating panel ──────────────── */
+/* ─── Selected entity panel (bottom-sheet on mobile) ─ */
 
 interface SelectedProps {
   terras: Terras | null;
@@ -560,9 +544,7 @@ function SelectedPanel(props: SelectedProps) {
   const colour = intensityColor(intensity);
 
   return (
-    <div
-      className="fade-up fixed left-0 right-0 bottom-0 md:absolute md:left-auto md:right-4 md:bottom-4 md:top-auto md:w-96 md:bottom-[140px] z-30"
-    >
+    <div className="fade-up fixed left-0 right-0 bottom-0 md:absolute md:left-5 md:right-auto md:bottom-5 md:top-auto md:w-[360px] z-30">
       <div
         className="rounded-t-3xl md:rounded-2xl"
         style={{
@@ -582,15 +564,14 @@ function SelectedPanel(props: SelectedProps) {
               <Pill tone={categoryPill.tone} className="capitalize mb-2">
                 {categoryPill.label}
               </Pill>
-              <h3 className="font-display font-semibold text-text-1 leading-tight" style={{ fontSize: '1.375rem' }}>
+              <h3 className="font-display font-semibold text-text-1 leading-tight" style={{ fontSize: '1.4rem' }}>
                 {title}
               </h3>
               <p className="text-xs text-text-3 mt-1.5">{subtitle}</p>
             </div>
             <button
               onClick={props.onClose}
-              className="p-2 rounded-lg shrink-0 -mt-1 -mr-1 transition-colors"
-              style={{ color: 'var(--color-text-3)' }}
+              className="p-2 rounded-lg shrink-0 -mt-1 -mr-1 transition-colors hover:bg-surface-2 text-text-3 hover:text-text-1"
               aria-label="Close"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
@@ -600,7 +581,6 @@ function SelectedPanel(props: SelectedProps) {
             </button>
           </div>
 
-          {/* Intensity */}
           <div
             className="flex items-center gap-4 px-4 py-3.5 rounded-xl mb-4"
             style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
@@ -623,7 +603,6 @@ function SelectedPanel(props: SelectedProps) {
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-2.5">
             <a
               href={detailHref}

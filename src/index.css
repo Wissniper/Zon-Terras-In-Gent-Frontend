@@ -3,119 +3,109 @@
 @tailwind utilities;
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Sun Seeker — Lifestyle palette
-   Warm cream backgrounds, terracotta brand, dusty sky accent, sage trim.
-   Designed to feel like a sun-soaked terrace at golden hour, not a dashboard.
+   Sun Seeker — Lifestyle palette (v2: restrained)
+   Off-white surfaces, near-black warm charcoal text, terracotta as accent.
+   Inspired by Resy / Soho House — generous whitespace, no overpowering colour.
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surfaces — warm cream stack */
-  --color-bg:          #FBF6EC;
+  /* Surfaces — off-white stack, very subtly warm */
+  --color-bg:          #FAF6EE;
   --color-surface:     #FFFFFF;
-  --color-surface-2:   #F5EBD9;
-  --color-surface-3:   #EDDFC6;
-  --color-border:      #E8D9BD;
-  --color-track:       #E8D9BD;
+  --color-surface-2:   #F4EFE5;
+  --color-surface-3:   #EBE5D8;
+  --color-border:      #E5DDCB;
+  --color-track:       #E8E0CD;
 
-  /* Brand — terracotta + sun gold */
+  /* Brand — terracotta + sun gold, used SPARINGLY as accent */
   --color-primary:        #C4502A;
   --color-primary-light:  #FBE4D5;
-  --color-primary-border: rgba(196,80,42,0.25);
+  --color-primary-border: rgba(196,80,42,0.22);
   --color-gold:           #E5870A;
   --color-blush:          #F5D5C3;
-  --color-cream:          #FBF6EC;
+  --color-cream:          #FAF6EE;
   --color-sage:           #8FA382;
 
-  /* Accents kept for restaurant / event differentiation, dialled to warm */
+  /* Differentiation accents */
   --color-sky:        #5C8FA8;
   --color-sky-light:  #DEEAF1;
   --color-terra:      #A03D1F;
 
-  /* Text — warm umber stack */
-  --color-text-1: #2A1810;
-  --color-text-2: #5A4632;
-  --color-text-3: #8B7758;
+  /* Text — near-black with warm undertone, NOT brown */
+  --color-text-1: #1A1611;
+  --color-text-2: #56514A;
+  --color-text-3: #8A847A;
 
-  /* Sidebar / branded dark panel — espresso */
-  --color-sidebar:         #2A1810;
-  --color-sidebar-surface: #3A2418;
-  --color-sidebar-border:  #4A3020;
-  --color-sidebar-muted:   #B89C7A;
-  --color-sidebar-accent:  #E0C9A8;
-  --color-sidebar-text:    #F0E0C5;
-  --color-sidebar-brand:   #FFD9A8;
+  /* "Sidebar" tokens — kept for back-compat but light now */
+  --color-sidebar:         #F4EFE5;
+  --color-sidebar-surface: #FFFFFF;
+  --color-sidebar-border:  #E5DDCB;
+  --color-sidebar-muted:   #8A847A;
+  --color-sidebar-accent:  #56514A;
+  --color-sidebar-text:    #1A1611;
+  --color-sidebar-brand:   #C4502A;
 
-  /* Map overlay glass — warm brown tint */
-  --color-map-overlay:        rgba(42,24,16,0.84);
-  --color-map-overlay-border: rgba(255,217,168,0.18);
+  /* Map overlay — translucent dark for floating panels over Mapbox */
+  --color-map-overlay:        rgba(26,22,17,0.82);
+  --color-map-overlay-border: rgba(255,255,255,0.10);
+  --color-map-overlay-light:  rgba(255,255,255,0.92);
 
-  /* Shadows — warm umber, not cold gray */
-  --shadow-card:       0 4px 20px rgba(140,80,40,0.07);
-  --shadow-card-hover: 0 10px 32px rgba(196,80,42,0.16);
-  --shadow-soft:       0 2px 16px rgba(140,80,40,0.08);
-  --shadow-float:      0 12px 40px rgba(140,80,40,0.14);
-  --shadow-amber:      0 6px 28px rgba(229,135,10,0.30);
-  --shadow-amber-lg:   0 12px 48px rgba(229,135,10,0.36);
-
-  /* Time-of-day gradients — used by atmospheric backgrounds & timeline */
-  --gradient-dawn:   linear-gradient(135deg, #FFD9A8 0%, #F5D5C3 50%, #E8B89A 100%);
-  --gradient-noon:   linear-gradient(135deg, #FBE4D5 0%, #FBF6EC 50%, #DEEAF1 100%);
-  --gradient-dusk:   linear-gradient(135deg, #E8855A 0%, #C4502A 60%, #6B3A2A 100%);
-  --gradient-night:  linear-gradient(135deg, #2A1810 0%, #1A0F08 100%);
-  --gradient-golden: linear-gradient(135deg, #FFD075 0%, #E5870A 50%, #C4502A 100%);
+  /* Shadows — soft, low-saturation */
+  --shadow-card:       0 2px 14px rgba(60,45,30,0.06);
+  --shadow-card-hover: 0 8px 28px rgba(60,45,30,0.12);
+  --shadow-soft:       0 1px 12px rgba(60,45,30,0.06);
+  --shadow-float:      0 12px 40px rgba(60,45,30,0.14);
+  --shadow-amber:      0 4px 22px rgba(196,80,42,0.28);
+  --shadow-amber-lg:   0 10px 40px rgba(196,80,42,0.34);
 }
 
 /* ── Dark Mode — moonlit terras ───────────────────── */
 [data-theme="dark"] {
-  --color-bg:          #1A0F08;
-  --color-surface:     #2A1810;
-  --color-surface-2:   #3A2418;
-  --color-surface-3:   #1A0F08;
-  --color-border:      #4A3020;
-  --color-track:       #4A3020;
+  --color-bg:          #161310;
+  --color-surface:     #1F1B16;
+  --color-surface-2:   #2A2520;
+  --color-surface-3:   #322B25;
+  --color-border:      #3A332B;
+  --color-track:       #3A332B;
 
   --color-primary:        #FFB876;
-  --color-primary-light:  rgba(255,184,118,0.14);
+  --color-primary-light:  rgba(255,184,118,0.12);
   --color-primary-border: rgba(255,184,118,0.32);
   --color-gold:           #FFD075;
-  --color-blush:          #4A2A1F;
-  --color-cream:          #2A1810;
+  --color-blush:          #3A2A22;
+  --color-cream:          #1F1B16;
   --color-sage:           #B0C29A;
 
   --color-sky:        #8FB8D0;
   --color-sky-light:  rgba(143,184,208,0.13);
   --color-terra:      #E8855A;
 
-  --color-text-1: #F8EDD8;
-  --color-text-2: #D4B896;
-  --color-text-3: #A89070;
+  --color-text-1: #F5EFE3;
+  --color-text-2: #C4BBA9;
+  --color-text-3: #8A8276;
 
-  --color-sidebar:         #150D06;
-  --color-sidebar-surface: #1F1509;
-  --color-sidebar-border:  #2A1B0E;
-  --color-sidebar-muted:   #9B8570;
-  --color-sidebar-accent:  #C9A880;
-  --color-sidebar-text:    #D4B896;
-  --color-sidebar-brand:   #E8C98A;
+  --color-sidebar:         #1F1B16;
+  --color-sidebar-surface: #2A2520;
+  --color-sidebar-border:  #3A332B;
+  --color-sidebar-muted:   #8A8276;
+  --color-sidebar-accent:  #C4BBA9;
+  --color-sidebar-text:    #F5EFE3;
+  --color-sidebar-brand:   #FFB876;
 
-  --color-map-overlay:        rgba(13,9,5,0.88);
-  --color-map-overlay-border: rgba(255,217,168,0.10);
+  --color-map-overlay:        rgba(13,10,7,0.86);
+  --color-map-overlay-border: rgba(255,255,255,0.10);
+  --color-map-overlay-light:  rgba(31,27,22,0.92);
 
-  --shadow-card:       0 4px 20px rgba(0,0,0,0.40);
-  --shadow-card-hover: 0 10px 32px rgba(255,184,118,0.18);
-  --shadow-soft:       0 2px 16px rgba(0,0,0,0.40);
+  --shadow-card:       0 2px 14px rgba(0,0,0,0.40);
+  --shadow-card-hover: 0 8px 28px rgba(255,184,118,0.16);
+  --shadow-soft:       0 1px 12px rgba(0,0,0,0.40);
   --shadow-float:      0 12px 40px rgba(0,0,0,0.55);
-
-  --gradient-dawn:   linear-gradient(135deg, #2A1810 0%, #4A2A1F 50%, #6B3A2A 100%);
-  --gradient-noon:   linear-gradient(135deg, #1A0F08 0%, #2A1810 50%, #3A2418 100%);
-  --gradient-dusk:   linear-gradient(135deg, #6B3A2A 0%, #2A1810 60%, #150D06 100%);
-  --gradient-night:  linear-gradient(135deg, #0A0604 0%, #150D06 100%);
-  --gradient-golden: linear-gradient(135deg, #FFD075 0%, #E5870A 50%, #C4502A 100%);
+  --shadow-amber:      0 4px 22px rgba(255,184,118,0.30);
+  --shadow-amber-lg:   0 10px 40px rgba(255,184,118,0.40);
 }
 
 /* ── Base Reset ────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; }
-
 html { text-size-adjust: 100%; }
 
 body {
@@ -136,7 +126,7 @@ body {
   overflow: hidden;
 }
 
-/* ── Focus Visible — single source of truth ────────── */
+/* ── Focus Visible ─────────────────────────────────── */
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
@@ -146,7 +136,7 @@ body {
 /* ── Display Font ──────────────────────────────────── */
 .font-display {
   font-family: 'Playfair Display', Georgia, serif;
-  font-feature-settings: 'lnum' 1;
+  font-feature-settings: 'lnum' 1, 'kern' 1;
 }
 
 /* ── Fluid Type Scale — generous, lifestyle ──────── */
@@ -179,7 +169,7 @@ body::before {
   inset: 0;
   pointer-events: none;
   z-index: 100;
-  opacity: 0.025;
+  opacity: 0.018;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
   background-size: 256px 256px;
 }
@@ -192,8 +182,8 @@ body::before {
 
 /* ── Sun Pulse ─────────────────────────────────────── */
 @keyframes sun-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245,172,50,0.45), 0 0 0 8px rgba(245,172,50,0.10); }
-  50%      { box-shadow: 0 0 0 6px rgba(245,172,50,0.22), 0 0 0 16px rgba(245,172,50,0.05); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(229,135,10,0.45), 0 0 0 6px rgba(229,135,10,0.10); }
+  50%      { box-shadow: 0 0 0 4px rgba(229,135,10,0.22), 0 0 0 12px rgba(229,135,10,0.05); }
 }
 .sun-pulse { animation: sun-pulse 3.5s ease-in-out infinite; }
 
@@ -229,7 +219,7 @@ body::before {
   background: var(--color-surface) !important;
   color: var(--color-text-1) !important;
   border: 1px solid var(--color-border) !important;
-  border-radius: 16px !important;
+  border-radius: 14px !important;
   padding: 0 !important;
   box-shadow: var(--shadow-float) !important;
 }
@@ -255,29 +245,44 @@ body::before {
   border-bottom-color: var(--color-surface) !important;
 }
 
-/* ── Page-level atmospheric backdrop ────────────────
-   Used by detail pages to feel like soft daylight, not a flat surface. */
+/* ── Page-level atmospheric backdrops ──────────────── */
+
+/* Soft warm sun-light wash for editorial pages */
 .bg-atmospheric {
   background:
-    radial-gradient(ellipse at top right, rgba(245,213,195,0.55), transparent 55%),
-    radial-gradient(ellipse at bottom left, rgba(255,217,168,0.30), transparent 60%),
+    radial-gradient(ellipse 90% 60% at 90% -10%, rgba(245,213,195,0.50), transparent 70%),
+    radial-gradient(ellipse 70% 40% at -10% 100%, rgba(229,135,10,0.10), transparent 70%),
     var(--color-bg);
 }
 [data-theme="dark"] .bg-atmospheric {
   background:
-    radial-gradient(ellipse at top right, rgba(196,80,42,0.18), transparent 55%),
-    radial-gradient(ellipse at bottom left, rgba(255,184,118,0.10), transparent 60%),
+    radial-gradient(ellipse 90% 60% at 90% -10%, rgba(196,80,42,0.18), transparent 70%),
+    radial-gradient(ellipse 70% 40% at -10% 100%, rgba(255,184,118,0.10), transparent 70%),
     var(--color-bg);
 }
 
-/* ── Text utilities for the lifestyle voice ────────── */
+/* ── Editorial typography ──────────────────────────── */
 .eyebrow {
   font-size: 0.6875rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   color: var(--color-text-3);
 }
+
+.editorial-rule {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--color-border), transparent);
+}
+
+.serif-num {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-feature-settings: 'lnum' 1, 'tnum' 1;
+}
+
+/* ── Hide scrollbar on horizontal carousels ────────── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* ── Print ─────────────────────────────────────────── */
 @media print {
