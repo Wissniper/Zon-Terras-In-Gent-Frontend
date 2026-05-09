@@ -1,13 +1,22 @@
-import { useState, useMemo } from 'react';
-import Map, { Layer, Marker, Popup } from 'react-map-gl';
-import type { LayerProps } from 'react-map-gl';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import Map, { Marker, Popup } from 'react-map-gl/mapbox';
+import type { MapRef, MarkerEvent } from 'react-map-gl/mapbox';
+import mapboxgl from 'mapbox-gl';
+import type { Map as MapboxMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { useLocation } from 'react-router-dom';
 import { useSelectedTime } from '../contexts/TimeContext';
 import { useWeatherData } from '../hooks/useWeatherData';
 import { useTerrasData } from '../hooks/useTerrasData';
-import type { Terras } from '../types';
+import { useRestaurantsData } from '../hooks/useRestaurantsData';
+import { useEventsData } from '../hooks/useEventsData';
+import { useSunPosition } from '../hooks/useSunPosition';
+import { intensityColor } from '../utils/intensity';
+import type { Terras, Restaurant, Event } from '../types';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
+
+type LayerFilter = 'terras' | 'restaurants' | 'events' | 'all';
 
 const INITIAL_VIEW = {
   longitude: 3.7174,
@@ -17,26 +26,12 @@ const INITIAL_VIEW = {
   bearing: -17,
 };
 
-const BUILDINGS_LAYER: LayerProps = {
-  id: '3d-buildings',
-  source: 'composite',
-  'source-layer': 'building',
-  filter: ['==', 'extrude', 'true'],
-  type: 'fill-extrusion',
-  minzoom: 14,
-  paint: {
-    'fill-extrusion-color': '#aaa',
-    'fill-extrusion-height': ['get', 'height'],
-    'fill-extrusion-base': ['get', 'min_height'],
-    'fill-extrusion-opacity': 0.6,
-  },
+/* Marker shape colors – all from the palette */
+const MARKER_COLORS = {
+  terras:     '#F5AC32', /* gold  */
+  restaurant: '#6DC2E8', /* sky   */
+  event:      '#C4502A', /* terra */
 };
-
-function intensityColor(intensity: number): string {
-  if (intensity >= 67) return '#F5AC32';
-  if (intensity >= 34) return '#E5870A';
-  return '#5B9BD5';
-}
 
 const TOTAL_MINUTES = 48 * 60 - 1;
 
@@ -109,14 +104,14 @@ function SunTimeline() {
   const thumbPct = (selectedMinutes / TOTAL_MINUTES) * 100;
 
   return (
-    <div className="shrink-0 px-6 py-4" style={{ background: '#150F08', borderTop: '1px solid #2E1E0A' }}>
+    <div className="shrink-0 px-6 py-4" style={{ background: 'var(--color-sidebar)', borderTop: '1px solid var(--color-sidebar-border)' }}>
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium uppercase tracking-label" style={{ color: '#7A6048', letterSpacing: '0.12em' }}>
+        <p className="text-xs font-medium uppercase tracking-label" style={{ color: 'var(--color-sidebar-accent)' }}>
           Sun Timeline
         </p>
         <div className="flex items-center gap-2">
-          <span className="text-xs" style={{ color: '#7A6048' }}>{displayDay}</span>
-          <span className="text-sm font-semibold tabular-nums" style={{ color: '#E8C98A' }}>{displayTime}</span>
+          <span className="text-xs font-medium" style={{ color: 'var(--color-sidebar-accent)' }}>{displayDay}</span>
+          <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--color-sidebar-brand)' }}>{displayTime}</span>
         </div>
       </div>
 
@@ -158,8 +153,8 @@ function SunTimeline() {
               left: `${m.pct}%`,
               transform: 'translateX(-50%)',
               fontSize: m.isDayBoundary ? 10 : 9,
-              fontWeight: m.isDayBoundary ? 600 : 400,
-              color: m.isDayBoundary ? '#9B8570' : '#5A4030',
+              fontWeight: m.isDayBoundary ? 700 : 500,
+              color: m.isDayBoundary ? 'var(--color-sidebar-brand)' : 'var(--color-sidebar-accent)',
               lineHeight: 1,
             }}
           >
@@ -229,7 +224,7 @@ function SunTimelineVertical() {
   const thumbPct = (selectedMinutes / TOTAL_MINUTES) * 100;
 
   return (
-    <div className="flex flex-1 min-h-0 px-2 py-3 gap-1 select-none" style={{ background: '#150F08' }}>
+    <div className="flex flex-1 min-h-0 px-2 py-3 gap-1 select-none" style={{ background: 'var(--color-sidebar)' }}>
       <div className="relative flex justify-center w-7 flex-shrink-0 self-stretch">
         <div
           className="absolute rounded-full pointer-events-none"
@@ -270,8 +265,8 @@ function SunTimelineVertical() {
               top: `${m.pct}%`,
               transform: 'translateY(-50%)',
               fontSize: m.isDayBoundary ? 9 : 8,
-              fontWeight: m.isDayBoundary ? 600 : 400,
-              color: m.isDayBoundary ? '#9B8570' : '#5A4030',
+              fontWeight: m.isDayBoundary ? 700 : 500,
+              color: m.isDayBoundary ? 'var(--color-sidebar-brand)' : 'var(--color-sidebar-accent)',
             }}
           >
             {m.label}
@@ -284,74 +279,170 @@ function SunTimelineVertical() {
 
 function Legend() {
   return (
-    <div className="rounded-2xl p-4 w-44" style={{ background: 'rgba(21,15,8,0.88)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)' }}>
-      <p className="text-xs font-medium uppercase tracking-label mb-3" style={{ color: '#7A6048', letterSpacing: '0.12em' }}>
+    <div
+      className="rounded-2xl p-4 w-44"
+      style={{ background: 'var(--color-map-overlay)', border: '1px solid var(--color-map-overlay-border)', backdropFilter: 'blur(12px)' }}
+    >
+      <p className="text-xs font-semibold uppercase tracking-label mb-3" style={{ color: 'var(--color-sidebar-brand)' }}>
         Sun Intensity
       </p>
       <div
         className="h-2 rounded-full mb-2"
         style={{ background: 'linear-gradient(to right, #3A2A18, #F5DFA0, #E5870A)' }}
       />
-      <div className="flex justify-between text-xs mb-4" style={{ color: '#7A6048' }}>
+      <div className="flex justify-between text-xs mb-4" style={{ color: 'var(--color-sidebar-accent)' }}>
         <span>Shade</span>
         <span>Full sun</span>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2 mb-4">
         {[
           { color: '#E5870A', label: '70%+  Full sun' },
           { color: '#F5AC32', label: '40%+  Partial' },
-          { color: '#5A4030', label: 'Below 40%' },
+          { color: '#9B8570', label: 'Below 40%' },
         ].map(({ color, label }) => (
           <div key={label} className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-            <span className="text-xs" style={{ color: '#9B8570' }}>{label}</span>
+            <span className="text-xs font-medium" style={{ color: 'var(--color-sidebar-text)' }}>{label}</span>
           </div>
         ))}
+      </div>
+      <div className="pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.10)' }}>
+        <p className="text-xs font-semibold uppercase tracking-label mb-2" style={{ color: 'var(--color-sidebar-brand)' }}>
+          Markers
+        </p>
+        <div className="space-y-1.5">
+          {[
+            { icon: '☀', color: MARKER_COLORS.terras,     label: 'Terraces' },
+            { icon: '🍴', color: MARKER_COLORS.restaurant, label: 'Restaurants' },
+            { icon: '★',  color: MARKER_COLORS.event,      label: 'Events' },
+          ].map(({ icon, color, label }) => (
+            <div key={label} className="flex items-center gap-2">
+              <span style={{ fontSize: 12, color, lineHeight: 1 }}>{icon}</span>
+              <span className="text-xs font-medium" style={{ color: 'var(--color-sidebar-text)' }}>{label}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 export default function MapPage() {
+  const mapRef = useRef<MapRef>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [selectedTerras, setSelectedTerras] = useState<Terras | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
   const { data: terrasen = [] } = useTerrasData();
+  const { data: restaurants = [] } = useRestaurantsData();
+  const { data: events = [] } = useEventsData();
+  const sunPosition = useSunPosition();
+  const location = useLocation();
+
+  useEffect(() => {
+    const state = location.state as { focusId?: string; type?: string } | null;
+    if (!state?.focusId || !mapLoaded) return;
+    const { focusId, type } = state;
+
+    let item: { location: { coordinates: [number, number] } } | undefined;
+    if (type === 'terras') {
+      const found = terrasen.find(t => t.uuid === focusId);
+      if (found) { setSelectedTerras(found); item = found; }
+    } else if (type === 'restaurant') {
+      const found = restaurants.find(r => r.uuid === focusId);
+      if (found) { setSelectedRestaurant(found); item = found; }
+    } else if (type === 'event') {
+      const found = events.find(e => e.uuid === focusId);
+      if (found) { setSelectedEvent(found); item = found; }
+    }
+
+    if (item && mapRef.current) {
+      const [lng, lat] = item.location.coordinates;
+      mapRef.current.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
+    }
+  }, [mapLoaded, location.state, terrasen, restaurants, events]);
+
+  useEffect(() => {
+    if (!mapLoaded || !sunPosition || !mapRef.current) return;
+
+    const map = mapRef.current.getMap() as MapboxMap;
+    const compassDeg = ((sunPosition.azimuth * 180) / Math.PI + 180) % 360;
+    const altitudeDeg = (sunPosition.altitude * 180) / Math.PI;
+    const polarDeg = 90 - altitudeDeg;
+
+    if (sunPosition.altitude > 0) {
+      map.setLights([
+        {
+          id: 'sun',
+          type: 'directional',
+          properties: {
+            direction: [compassDeg, polarDeg],
+            color: 'white',
+            intensity: Math.min(1, 0.4 + (altitudeDeg / 90) * 0.8),
+            'cast-shadows': true,
+            'shadow-intensity': 1,
+          },
+        },
+        {
+          id: 'ambient',
+          type: 'ambient',
+          properties: { color: 'white', intensity: 0.2 },
+        },
+      ]);
+    } else {
+      map.setLights([
+        { id: 'ambient', type: 'ambient', properties: { color: '#1a2744', intensity: 0.4 } },
+      ]);
+    }
+  }, [sunPosition, mapLoaded]);
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
       <div className="flex-1 relative overflow-hidden">
         <Map
+          ref={mapRef}
           mapboxAccessToken={MAPBOX_TOKEN}
           initialViewState={INITIAL_VIEW}
           style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
-          mapStyle="mapbox://styles/mapbox/dark-v11"
+          mapLib={mapboxgl}
+          mapStyle="mapbox://styles/mapbox/standard"
+          onLoad={() => {
+            const map = mapRef.current?.getMap() as MapboxMap;
+            map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+            setMapLoaded(true);
+          }}
+          maxBounds={[3.65, 50.99, 3.82, 51.12]}
+          minZoom={12}
         >
-          <Layer {...BUILDINGS_LAYER} />
-
-          {terrasen.map((t) => (
-            <Marker
-              key={t.uuid}
-              longitude={t.location.coordinates[0]}
-              latitude={t.location.coordinates[1]}
-              anchor="center"
-              onClick={(e: { originalEvent: { stopPropagation: () => void; }; }) => {
-                e.originalEvent.stopPropagation();
-                setSelectedTerras(t);
-              }}
-            >
-              <div
-                style={{
-                  width: 14,
-                  height: 14,
-                  borderRadius: '50%',
-                  background: intensityColor(t.intensity),
-                  border: '2px solid rgba(255,255,255,0.5)',
-                  cursor: 'pointer',
-                  transition: 'transform 0.1s',
+          {/* Terrace markers — gold sun */}
+          {(layerFilter === 'terras' || layerFilter === 'all') &&
+            terrasen.map((t) => (
+              <Marker
+                key={t.uuid}
+                longitude={t.location.coordinates[0]}
+                latitude={t.location.coordinates[1]}
+                anchor="center"
+                onClick={(e: MarkerEvent<MouseEvent>) => {
+                  e.originalEvent.stopPropagation();
+                  setSelectedTerras(t);
                 }}
-              />
-            </Marker>
-          ))}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                  <svg width="26" height="26" viewBox="0 0 26 26" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+                    {[0, 60, 120, 180, 240, 300].map(deg => {
+                      const r = (deg * Math.PI) / 180;
+                      return <line key={deg} x1={13 + 7.5 * Math.cos(r)} y1={13 + 7.5 * Math.sin(r)} x2={13 + 11 * Math.cos(r)} y2={13 + 11 * Math.sin(r)} stroke={MARKER_COLORS.terras} strokeWidth="1.8" strokeLinecap="round" />;
+                    })}
+                    <circle cx="13" cy="13" r="5.5" fill={MARKER_COLORS.terras} stroke="white" strokeWidth="1.5" />
+                  </svg>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,0.65)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>
+                    {t.name}
+                  </span>
+                </div>
+              </Marker>
+            ))}
 
           {selectedTerras && (
             <Popup
@@ -362,24 +453,164 @@ export default function MapPage() {
               closeOnClick={false}
               offset={10}
             >
-              <div style={{ padding: '10px 12px', minWidth: 160 }}>
-                <p style={{ fontWeight: 600, color: '#E8C98A', marginBottom: 4, fontSize: 14 }}>
+              <div style={{ padding: '12px 14px', minWidth: 180 }}>
+                <p style={{ fontWeight: 700, color: 'var(--color-sidebar-text, #fff)', marginBottom: 3, fontSize: 14, lineHeight: 1.3 }}>
                   {selectedTerras.name}
                 </p>
-                <p style={{ color: '#9B8570', fontSize: 12, marginBottom: 6 }}>
+                <p style={{ color: 'var(--color-sidebar-muted)', fontSize: 11, marginBottom: 8, lineHeight: 1.4 }}>
                   {selectedTerras.address}
                 </p>
-                <p style={{ fontSize: 12, color: intensityColor(selectedTerras.intensity), marginBottom: selectedTerras.url ? 8 : 0 }}>
-                  ☀ {selectedTerras.intensity}/100
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: selectedTerras.url ? 10 : 0 }}>
+                  <span style={{ fontSize: 11, color: 'var(--color-sidebar-muted)' }}>Sun exposure</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: intensityColor(selectedTerras.intensity), background: `${intensityColor(selectedTerras.intensity)}22`, padding: '2px 8px', borderRadius: 6 }}>
+                    ☀ {selectedTerras.intensity}%
+                  </span>
+                </div>
                 {selectedTerras.url && (
                   <a
                     href={selectedTerras.url}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ fontSize: 12, color: '#E5870A', textDecoration: 'underline' }}
+                    style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 600, color: 'var(--color-sidebar-brand)', background: 'rgba(229,135,10,0.15)', border: '1px solid rgba(229,135,10,0.3)', borderRadius: 6, padding: '5px 0', textDecoration: 'none' }}
                   >
-                    Visit website
+                    Visit website →
+                  </a>
+                )}
+              </div>
+            </Popup>
+          )}
+
+          {/* Restaurant markers — sky blue fork & knife badge */}
+          {(layerFilter === 'restaurants' || layerFilter === 'all') &&
+            restaurants.map((r) => (
+              <Marker
+                key={r.uuid}
+                longitude={r.location.coordinates[0]}
+                latitude={r.location.coordinates[1]}
+                anchor="center"
+                onClick={(e: MarkerEvent<MouseEvent>) => {
+                  e.originalEvent.stopPropagation();
+                  setSelectedRestaurant(r);
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                  <svg width="22" height="24" viewBox="0 0 22 24" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+                    <rect x="0.75" y="0.75" width="20.5" height="22.5" rx="6" fill={MARKER_COLORS.restaurant} stroke="white" strokeWidth="1.5" />
+                    {/* fork */}
+                    <line x1="7.5" y1="5" x2="7.5" y2="9" stroke="white" strokeWidth="1.3" strokeLinecap="round" />
+                    <line x1="10" y1="5" x2="10" y2="9" stroke="white" strokeWidth="1.3" strokeLinecap="round" />
+                    <path d="M7.5 9 Q8.75 11 8.75 12.5 L8.75 19" stroke="white" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+                    {/* knife */}
+                    <path d="M14.5 5 L14.5 8.5 Q15.5 9.5 14.5 10.5 L14.5 19" stroke="white" strokeWidth="1.3" strokeLinecap="round" fill="none" />
+                  </svg>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,0.65)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>
+                    {r.name}
+                  </span>
+                </div>
+              </Marker>
+            ))}
+
+          {selectedRestaurant && (
+            <Popup
+              longitude={selectedRestaurant.location.coordinates[0]}
+              latitude={selectedRestaurant.location.coordinates[1]}
+              anchor="bottom"
+              onClose={() => setSelectedRestaurant(null)}
+              closeOnClick={false}
+              offset={10}
+            >
+              <div style={{ padding: '12px 14px', minWidth: 180 }}>
+                <p style={{ fontWeight: 700, color: 'var(--color-sidebar-text, #fff)', marginBottom: 2, fontSize: 14, lineHeight: 1.3 }}>
+                  {selectedRestaurant.name}
+                </p>
+                <p style={{ color: MARKER_COLORS.restaurant, fontSize: 11, fontWeight: 600, marginBottom: 3, textTransform: 'capitalize' }}>
+                  {selectedRestaurant.cuisine}
+                </p>
+                <p style={{ color: 'var(--color-sidebar-muted)', fontSize: 11, marginBottom: 8, lineHeight: 1.4 }}>
+                  {selectedRestaurant.address}
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: selectedRestaurant.website ? 10 : 0 }}>
+                  <span style={{ fontSize: 11, color: 'var(--color-sidebar-muted)' }}>Sun exposure</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: intensityColor(selectedRestaurant.intensity), background: `${intensityColor(selectedRestaurant.intensity)}22`, padding: '2px 8px', borderRadius: 6 }}>
+                    ☀ {selectedRestaurant.intensity}%
+                  </span>
+                </div>
+                {selectedRestaurant.website && (
+                  <a
+                    href={selectedRestaurant.website}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 600, color: MARKER_COLORS.restaurant, background: `${MARKER_COLORS.restaurant}22`, border: `1px solid ${MARKER_COLORS.restaurant}44`, borderRadius: 6, padding: '5px 0', textDecoration: 'none' }}
+                  >
+                    Visit website →
+                  </a>
+                )}
+              </div>
+            </Popup>
+          )}
+
+          {/* Event markers — terra red star */}
+          {(layerFilter === 'events' || layerFilter === 'all') &&
+            events.map((ev) => (
+              <Marker
+                key={ev.uuid}
+                longitude={ev.location.coordinates[0]}
+                latitude={ev.location.coordinates[1]}
+                anchor="center"
+                onClick={(e: MarkerEvent<MouseEvent>) => {
+                  e.originalEvent.stopPropagation();
+                  setSelectedEvent(ev);
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))' }}>
+                    <polygon
+                      points="12,2 14.4,8.8 21.5,9 16.3,13.6 18.4,20.5 12,16.9 5.6,20.5 7.7,13.6 2.5,9 9.6,8.8"
+                      fill={MARKER_COLORS.event}
+                      stroke="white"
+                      strokeWidth="1.3"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,0.65)', padding: '2px 6px', borderRadius: 8, whiteSpace: 'nowrap', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>
+                    {ev.title}
+                  </span>
+                </div>
+              </Marker>
+            ))}
+
+          {selectedEvent && (
+            <Popup
+              longitude={selectedEvent.location.coordinates[0]}
+              latitude={selectedEvent.location.coordinates[1]}
+              anchor="bottom"
+              onClose={() => setSelectedEvent(null)}
+              closeOnClick={false}
+              offset={10}
+            >
+              <div style={{ padding: '12px 14px', minWidth: 180 }}>
+                <p style={{ fontWeight: 700, color: 'var(--color-sidebar-text, #fff)', marginBottom: 3, fontSize: 14, lineHeight: 1.3 }}>
+                  {selectedEvent.title}
+                </p>
+                <p style={{ color: 'var(--color-sidebar-muted)', fontSize: 11, marginBottom: 8, lineHeight: 1.4 }}>
+                  {selectedEvent.address}
+                </p>
+                {selectedEvent.intensity != null && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: selectedEvent.url ? 10 : 0 }}>
+                    <span style={{ fontSize: 11, color: 'var(--color-sidebar-muted)' }}>Sun exposure</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: intensityColor(selectedEvent.intensity), background: `${intensityColor(selectedEvent.intensity)}22`, padding: '2px 8px', borderRadius: 6 }}>
+                      ☀ {selectedEvent.intensity}%
+                    </span>
+                  </div>
+                )}
+                {selectedEvent.url && (
+                  <a
+                    href={selectedEvent.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ display: 'block', textAlign: 'center', fontSize: 12, fontWeight: 600, color: MARKER_COLORS.event, background: `${MARKER_COLORS.event}22`, border: `1px solid ${MARKER_COLORS.event}44`, borderRadius: 6, padding: '5px 0', textDecoration: 'none' }}
+                  >
+                    More info →
                   </a>
                 )}
               </div>
@@ -392,10 +623,37 @@ export default function MapPage() {
           <Legend />
         </div>
 
+        {/* Layer toggle — bottom left */}
+        <div
+          className="absolute bottom-4 left-4 z-10 flex rounded-xl overflow-hidden"
+          style={{ background: 'var(--color-map-overlay)', border: '1px solid var(--color-map-overlay-border)', backdropFilter: 'blur(12px)' }}
+        >
+          {(['all', 'terras', 'restaurants', 'events'] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setLayerFilter(f)}
+              style={{
+                padding: '8px 10px',
+                fontSize: 11,
+                fontWeight: layerFilter === f ? 700 : 500,
+                color: layerFilter === f ? 'var(--color-sidebar-brand)' : 'var(--color-sidebar-text)',
+                background: layerFilter === f ? 'rgba(229,135,10,0.2)' : 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                textTransform: 'capitalize',
+                minHeight: 44,
+              }}
+            >
+              {f === 'all' ? 'All' : f === 'terras' ? 'Terraces' : f === 'restaurants' ? 'Restaurants' : 'Events'}
+            </button>
+          ))}
+        </div>
+
         {/* Mobile timeline toggle */}
         <button
-          className="md:hidden absolute bottom-4 right-4 z-20 w-12 h-12 rounded-full flex items-center justify-center shadow-amber transition-transform hover:scale-105 active:scale-95"
-          style={{ background: 'linear-gradient(135deg, #E5870A, #C46010)', color: '#FFF' }}
+          className="md:hidden absolute bottom-4 right-4 z-20 w-12 h-12 rounded-full flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+          style={{ background: 'linear-gradient(135deg, #E5870A, #C46010)', color: '#FFF', boxShadow: 'var(--shadow-amber)' }}
           onClick={() => setTimelineOpen(true)}
           aria-label="Open sun timeline"
         >
@@ -409,21 +667,21 @@ export default function MapPage() {
         {timelineOpen && (
           <div
             className="md:hidden fixed inset-0 z-40"
-            style={{ background: 'rgba(21,15,8,0.5)', backdropFilter: 'blur(2px)' }}
+            style={{ background: 'rgba(13,9,5,0.5)', backdropFilter: 'blur(2px)' }}
             onClick={() => setTimelineOpen(false)}
           />
         )}
         <div
-          className={`md:hidden fixed inset-y-0 right-0 z-50 w-28 shadow-float flex flex-col transition-transform duration-300 ease-in-out ${
+          className={`md:hidden fixed inset-y-0 right-0 z-50 w-28 flex flex-col transition-transform duration-300 ease-in-out ${
             timelineOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
-          style={{ background: '#150F08', borderLeft: '1px solid #2E1E0A' }}
+          style={{ background: 'var(--color-sidebar)', borderLeft: '1px solid var(--color-sidebar-border)', boxShadow: 'var(--shadow-float)' }}
         >
           <div className="flex justify-end px-2 pt-2">
             <button
               onClick={() => setTimelineOpen(false)}
-              className="p-1 rounded-lg transition-colors"
-              style={{ color: '#7A6048' }}
+              className="p-2 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+              style={{ color: 'var(--color-sidebar-muted)' }}
               aria-label="Close timeline"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

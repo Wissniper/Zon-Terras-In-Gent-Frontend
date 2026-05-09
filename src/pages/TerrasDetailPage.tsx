@@ -2,14 +2,11 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getTerrasById } from '../services/terrasService';
 import { fetchSunForTerras } from '../services/sunService';
-
-function intensityColor(v: number) {
-  return v >= 70 ? '#E5870A' : v >= 40 ? '#F5AC32' : '#9B8570';
-}
+import { intensityColor } from '../utils/intensity';
 
 function SunStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl p-3.5" style={{ background: '#FAF5EC', border: '1px solid #EDE4D3' }}>
+    <div className="rounded-xl p-3.5" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)' }}>
       <p className="text-xs font-medium uppercase tracking-label text-text-3" style={{ letterSpacing: '0.10em' }}>{label}</p>
       <p className="font-display text-lg font-semibold text-text-1 mt-1">{value}</p>
       {sub && <p className="text-xs text-text-3 mt-0.5">{sub}</p>}
@@ -35,7 +32,7 @@ export default function TerrasDetailPage() {
 
   if (isLoading) return (
     <div className="flex-1 flex items-center justify-center bg-bg">
-      <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: '#E5870A', borderTopColor: 'transparent' }} />
+      <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{ borderColor: 'var(--color-primary)', borderTopColor: 'transparent' }} />
     </div>
   );
 
@@ -56,7 +53,7 @@ export default function TerrasDetailPage() {
 
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-1.5 text-sm text-text-3 hover:text-text-2 transition-colors"
+          className="flex items-center gap-1.5 text-sm text-text-3 hover:text-text-2 transition-colors py-1 min-h-[44px]"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <polyline points="15 18 9 12 15 6" />
@@ -65,10 +62,13 @@ export default function TerrasDetailPage() {
         </button>
 
         {/* Header card */}
-        <div className="bg-surface rounded-3xl p-6 fade-up" style={{ border: '1px solid #EDE4D3', boxShadow: '0 4px 24px rgba(26,18,8,0.07)' }}>
+        <div className="bg-surface rounded-3xl p-6 fade-up" style={{ border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-soft)' }}>
           <div className="flex items-start justify-between gap-3 mb-1">
-            <h1 className="font-display text-2xl font-semibold text-text-1 leading-tight">{terras.name}</h1>
-            <span className="text-xs font-medium uppercase tracking-label text-text-3 shrink-0 mt-1 px-2 py-1 rounded-lg" style={{ background: '#F5EEE2', letterSpacing: '0.10em' }}>
+            <h1 className="font-display text-fluid-2xl font-semibold text-text-1 leading-tight">{terras.name}</h1>
+            <span
+              className="text-xs font-medium uppercase tracking-label text-text-3 shrink-0 mt-1 px-2 py-1 rounded-lg"
+              style={{ background: 'var(--color-surface-2)' }}
+            >
               Terrace
             </span>
           </div>
@@ -85,7 +85,7 @@ export default function TerrasDetailPage() {
                 {terras.intensity}<span className="text-xl">%</span>
               </span>
             </div>
-            <div className="h-2 rounded-full overflow-hidden" style={{ background: '#EDE4D3' }}>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-track)' }}>
               <div
                 className="h-full rounded-full transition-all duration-700"
                 style={{ width: `${terras.intensity}%`, background: `linear-gradient(to right, ${color}88, ${color})` }}
@@ -98,13 +98,20 @@ export default function TerrasDetailPage() {
           )}
 
           <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => navigate('/', { state: { focusId: id, type: 'terras' } })}
+              className="text-xs font-medium px-4 py-2.5 rounded-lg transition-colors min-h-[44px] flex items-center"
+              style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)', border: '1px solid var(--color-primary-border)' }}
+            >
+              View on 3D map ↗
+            </button>
             {terras.url && (
               <a
                 href={terras.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
-                style={{ background: '#FEF5E6', color: '#E5870A', border: '1px solid rgba(229,135,10,0.2)' }}
+                className="text-xs font-medium px-4 py-2.5 rounded-lg transition-colors text-text-3 min-h-[44px] flex items-center"
+                style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
               >
                 Visit website ↗
               </a>
@@ -114,8 +121,8 @@ export default function TerrasDetailPage() {
                 href={terras.osmUri}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors text-text-3"
-                style={{ background: '#F5EEE2', border: '1px solid #EDE4D3' }}
+                className="text-xs font-medium px-4 py-2.5 rounded-lg transition-colors text-text-3 min-h-[44px] flex items-center"
+                style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
               >
                 OpenStreetMap ↗
               </a>
@@ -125,7 +132,7 @@ export default function TerrasDetailPage() {
 
         {/* Sun data */}
         {sun && (
-          <div className="bg-surface rounded-3xl p-6 fade-up fade-up-delay-1" style={{ border: '1px solid #EDE4D3', boxShadow: '0 4px 24px rgba(26,18,8,0.07)' }}>
+          <div className="bg-surface rounded-3xl p-6 fade-up fade-up-delay-1" style={{ border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-soft)' }}>
             <p className="text-xs font-medium uppercase tracking-label text-text-3 mb-4" style={{ letterSpacing: '0.10em' }}>Sun Data</p>
             <div className="grid grid-cols-2 gap-2.5">
               <SunStat label="Altitude" value={`${Math.round((sun.altitude * 180) / Math.PI)}°`} />
@@ -149,7 +156,7 @@ export default function TerrasDetailPage() {
         )}
 
         {/* Map */}
-        <div className="rounded-3xl overflow-hidden h-56 fade-up fade-up-delay-2" style={{ border: '1px solid #EDE4D3', boxShadow: '0 4px 24px rgba(26,18,8,0.07)' }}>
+        <div className="rounded-3xl overflow-hidden h-56 fade-up fade-up-delay-2" style={{ border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-soft)' }}>
           <iframe src={osmUrl} title={`Map of ${terras.name}`} className="w-full h-full" loading="lazy" />
         </div>
       </div>
