@@ -270,30 +270,47 @@ export default function MapPage() {
             its first `idle` event. Pure CSS, no SVG animations. */}
         <MapSkeleton visible={!mapLoaded || !loadingState.ready} />
 
-        {/* Visible Mapbox error banner — surfaces blank-canvas failures
-            (Safari WebGL2, blocked tile requests, invalid token) so they
-            don't disappear into the console. */}
-        {mapError && (
-          <div
-            className="absolute top-5 left-1/2 -translate-x-1/2 z-50 max-w-[420px] px-4 py-3 rounded-lg"
-            style={{
-              background: 'var(--color-surface)',
-              border: '1px solid var(--color-coral)',
-              boxShadow: 'var(--shadow-float)',
-              fontSize: 13,
-              color: 'var(--color-text-1)',
-            }}
-            role="alert"
-          >
-            <p className="font-semibold mb-1" style={{ color: 'var(--color-coral)' }}>
-              Map failed to load
-            </p>
-            <p className="text-text-2" style={{ wordBreak: 'break-word' }}>{mapError}</p>
-            <p className="text-text-3 text-xs mt-2">
-              Browser: {caps.isSafari ? 'Safari' : 'Other'} · WebGL2: {caps.webgl2 ? 'yes' : 'no'}
-            </p>
-          </div>
-        )}
+        {/* Visible Mapbox error banner — surfaces blank-canvas failures so
+            they don't vanish into the console. Detects the well-known
+            Safari/WebGL2 UBO failure and tells the user what to do. */}
+        {mapError && (() => {
+          const isUboLimit = /UBO|uniform.+limit|device limit 0/i.test(mapError);
+          return (
+            <div
+              className="absolute top-5 left-1/2 -translate-x-1/2 z-50 max-w-[480px] px-5 py-4 rounded-xl"
+              style={{
+                background: 'var(--color-surface)',
+                border: '1px solid var(--color-coral)',
+                boxShadow: 'var(--shadow-float)',
+                fontSize: 13,
+                color: 'var(--color-text-1)',
+              }}
+              role="alert"
+            >
+              <p className="font-semibold mb-2" style={{ color: 'var(--color-coral)' }}>
+                {isUboLimit ? 'Map renderer not available in this browser' : 'Map failed to load'}
+              </p>
+              {isUboLimit ? (
+                <>
+                  <p className="text-text-2 leading-relaxed">
+                    Mapbox needs WebGL 2 with full uniform-buffer support, which
+                    {' '}{caps.isSafari ? 'this Safari version' : 'this browser'} doesn't
+                    fully provide on the current device. Open the page in
+                    Chrome or Firefox for the full experience.
+                  </p>
+                  <p className="text-text-3 text-xs mt-3">
+                    {mapError}
+                  </p>
+                </>
+              ) : (
+                <p className="text-text-2" style={{ wordBreak: 'break-word' }}>{mapError}</p>
+              )}
+              <p className="text-text-3 text-xs mt-3">
+                Browser: {caps.isSafari ? 'Safari' : 'Other'} · WebGL2: {caps.webgl2 ? 'yes' : 'no'}
+              </p>
+            </div>
+          );
+        })()}
 
         {/* ── Floating panels ─────────────────────────── */}
 

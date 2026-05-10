@@ -64,6 +64,13 @@ export function detectDeviceCapabilities(): DeviceCapabilities {
   const isSafari =
     /Safari/i.test(ua) && !/Chrome|Chromium|Edg|Edge|Firefox|FxiOS|CriOS/i.test(ua);
 
+  // On Safari we *never* probe WebGL ourselves. Even with an explicit
+  // loseContext() in finally, Safari's GPU memory tracker sometimes evicts
+  // Mapbox's later context to free ours, leaving Mapbox in a degraded state
+  // where MAX_UNIFORM_BLOCK_SIZE returns 0. Skipping the probe avoids that
+  // entire failure mode; we lose `renderer`/`maxTextureSize` info but the
+  // map renders.
+
   const hardwareConcurrency =
     typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
   const deviceMemoryGB =
@@ -73,7 +80,7 @@ export function detectDeviceCapabilities(): DeviceCapabilities {
   const pixelRatio =
     typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1;
 
-  const gl = probeWebGL();
+  const gl = isSafari ? null : probeWebGL();
   const lowMaxTexture = gl ? gl.maxTextureSize < 8192 : false;
   const softwareRenderer = gl ? /SwiftShader|Software/i.test(gl.renderer) : false;
 
@@ -88,7 +95,10 @@ export function detectDeviceCapabilities(): DeviceCapabilities {
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 
-  const webgl2 = gl?.webgl2 ?? false;
+  // For Safari we couldn't probe — fall back to the static type check.
+  const webgl2 =
+    gl?.webgl2
+      ?? (typeof window !== 'undefined' && 'WebGL2RenderingContext' in window);
 
   return {
     isMobile,
