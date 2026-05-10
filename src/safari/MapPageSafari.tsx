@@ -1,23 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet.markercluster';
-import 'leaflet.markercluster/dist/MarkerCluster.css';
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import { useLocation } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
+import { useLocation } from "react-router-dom";
 
-import { useTerrasData } from '../hooks/useTerrasData';
-import { useRestaurantsData } from '../hooks/useRestaurantsData';
-import { useEventsData } from '../hooks/useEventsData';
-import { useTerrasSunData } from '../hooks/useTerrasSunData';
-import { useRestaurantSunData } from '../hooks/useRestaurantSunData';
-import { useEventSunData } from '../hooks/useEventSunData';
-import { intensityColor, intensityLabel } from '../utils/intensity';
-import LiveStatePanel from '../components/map/LiveStatePanel';
-import SunniestNowPanel from '../components/map/SunniestNowPanel';
-import SunTimeline from '../components/SunTimeline';
-import Pill from '../components/ui/Pill';
-import type { Terras, Restaurant, Event } from '../types';
+import { useTerrasData } from "../hooks/useTerrasData";
+import { useRestaurantsData } from "../hooks/useRestaurantsData";
+import { useEventsData } from "../hooks/useEventsData";
+import { useTerrasSunData } from "../hooks/useTerrasSunData";
+import { useRestaurantSunData } from "../hooks/useRestaurantSunData";
+import { useEventSunData } from "../hooks/useEventSunData";
+import { intensityColor, intensityLabel } from "../utils/intensity";
+import LiveStatePanel from "../components/map/LiveStatePanel";
+import SunniestNowPanel from "../components/map/SunniestNowPanel";
+import SunTimeline from "../components/SunTimeline";
+import Pill from "../components/ui/Pill";
+import type { Terras, Restaurant, Event } from "../types";
 
 /**
  * Safari-only fallback map.
@@ -40,17 +40,17 @@ const INITIAL = { lat: 51.0543, lng: 3.7174, zoom: 14 };
 const MAX_BOUNDS = L.latLngBounds([50.99, 3.65], [51.12, 3.82]);
 
 const COLORS = {
-  terras: '#E5870A',
-  restaurant: '#5C8FA8',
-  event: '#FF6B4A',
+  terras: "#E5870A",
+  restaurant: "#5C8FA8",
+  event: "#FF6B4A",
 };
 
-type LayerFilter = 'terras' | 'restaurants' | 'events' | 'all';
-type Category = 'terras' | 'restaurant' | 'event';
+type LayerFilter = "terras" | "restaurants" | "events" | "all";
+type Category = "terras" | "restaurant" | "event";
 
 function createPinIcon(color: string): L.DivIcon {
   return L.divIcon({
-    className: '',
+    className: "",
     iconSize: [18, 18],
     iconAnchor: [9, 9],
     html: `<div style="
@@ -78,12 +78,24 @@ interface PanelProps {
   onClose: () => void;
 }
 
-function SelectedPanel({ terras, restaurant, event, terrasIntensity, restaurantIntensity, eventIntensity, onClose }: PanelProps) {
+function SelectedPanel({
+  terras,
+  restaurant,
+  event,
+  terrasIntensity,
+  restaurantIntensity,
+  eventIntensity,
+  onClose,
+}: PanelProps) {
   const active = terras ?? restaurant ?? event;
   if (!active) return null;
-  const title = terras?.name ?? restaurant?.name ?? event?.title ?? '';
-  const subtitle = (terras ?? restaurant)?.address ?? event?.address ?? '';
-  const intensity = terras ? terrasIntensity : restaurant ? restaurantIntensity : eventIntensity;
+  const title = terras?.name ?? restaurant?.name ?? event?.title ?? "";
+  const subtitle = (terras ?? restaurant)?.address ?? event?.address ?? "";
+  const intensity = terras
+    ? terrasIntensity
+    : restaurant
+      ? restaurantIntensity
+      : eventIntensity;
   const colour = intensityColor(intensity);
   const detailHref = terras
     ? `/terrasen/${terras.uuid}`
@@ -91,44 +103,95 @@ function SelectedPanel({ terras, restaurant, event, terrasIntensity, restaurantI
       ? `/restaurants/${restaurant.uuid}`
       : event
         ? `/events/${event.uuid}`
-        : '#';
-  const tone = terras ? 'gold' : restaurant ? 'sky' : 'terra';
+        : "#";
+  const tone = terras ? "gold" : restaurant ? "sky" : "terra";
 
   return (
-    <div className="absolute left-5 bottom-5 z-[1000] w-[360px] max-w-[90vw] rounded-2xl"
-      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-float)' }}
+    <div
+      className="absolute left-5 bottom-5 z-[1000] w-[360px] max-w-[90vw] rounded-2xl"
+      style={{
+        background: "var(--color-surface)",
+        border: "1px solid var(--color-border)",
+        boxShadow: "var(--shadow-float)",
+      }}
     >
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0">
             <Pill tone={tone} className="mb-2">
-              {terras ? 'Terrace' : restaurant ? 'Restaurant' : 'Event'}
+              {terras ? "Terrace" : restaurant ? "Restaurant" : "Event"}
             </Pill>
-            <h3 className="font-display font-semibold text-text-1" style={{ fontSize: '1.4rem' }}>{title}</h3>
+            <h3
+              className="font-display font-semibold text-text-1"
+              style={{ fontSize: "1.4rem" }}
+            >
+              {title}
+            </h3>
             <p className="text-xs text-text-3 mt-1.5">{subtitle}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded text-text-3 hover:text-text-1" aria-label="Close">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded text-text-3 hover:text-text-1"
+            aria-label="Close"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
         </div>
-        <div className="flex items-center gap-4 px-4 py-3.5 rounded-xl mb-4"
-          style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}
+        <div
+          className="flex items-center gap-4 px-4 py-3.5 rounded-xl mb-4"
+          style={{
+            background: "var(--color-surface-2)",
+            border: "1px solid var(--color-border)",
+          }}
         >
-          <span className="font-display tabular-nums shrink-0" style={{ fontSize: '2.4rem', lineHeight: 1, color: colour }}>
-            {intensity}<span style={{ fontSize: '1rem' }}>%</span>
+          <span
+            className="font-display tabular-nums shrink-0"
+            style={{ fontSize: "2.4rem", lineHeight: 1, color: colour }}
+          >
+            {intensity}
+            <span style={{ fontSize: "1rem" }}>%</span>
           </span>
           <div className="min-w-0 flex-1">
-            <p className="font-medium text-text-1" style={{ fontSize: '0.875rem' }}>{intensityLabel(intensity)}</p>
-            <div className="h-1.5 rounded-full mt-1.5 overflow-hidden" style={{ background: 'var(--color-track)' }}>
-              <div className="h-full rounded-full transition-all duration-700"
-                style={{ width: `${intensity}%`, background: `linear-gradient(to right, ${colour}88, ${colour})` }} />
+            <p
+              className="font-medium text-text-1"
+              style={{ fontSize: "0.875rem" }}
+            >
+              {intensityLabel(intensity)}
+            </p>
+            <div
+              className="h-1.5 rounded-full mt-1.5 overflow-hidden"
+              style={{ background: "var(--color-track)" }}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${intensity}%`,
+                  background: `linear-gradient(to right, ${colour}88, ${colour})`,
+                }}
+              />
             </div>
           </div>
         </div>
-        <a href={detailHref} className="block text-center text-sm font-semibold px-4 py-2.5 rounded-lg"
-          style={{ background: 'var(--color-primary)', color: 'var(--color-on-primary)', boxShadow: 'var(--shadow-amber)' }}>
+        <a
+          href={detailHref}
+          className="block text-center text-sm font-semibold px-4 py-2.5 rounded-lg"
+          style={{
+            background: "var(--color-primary)",
+            color: "var(--color-on-primary)",
+            boxShadow: "var(--shadow-amber)",
+          }}
+        >
           View details →
         </a>
       </div>
@@ -141,25 +204,32 @@ export default function MapPageSafari() {
   const mapRef = useRef<L.Map | null>(null);
   const markerLayerRef = useRef<L.MarkerClusterGroup | null>(null);
 
-  const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
+  const [layerFilter, setLayerFilter] = useState<LayerFilter>("all");
   const [selectedTerras, setSelectedTerras] = useState<Terras | null>(null);
-  const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
+  const [selectedRestaurant, setSelectedRestaurant] =
+    useState<Restaurant | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(false);
   const [noticeVisible, setNoticeVisible] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return window.localStorage.getItem('safari-3d-notice-dismissed') !== '1';
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem("safari-3d-notice-dismissed") !== "1";
   });
   const dismissNotice = () => {
     setNoticeVisible(false);
-    try { window.localStorage.setItem('safari-3d-notice-dismissed', '1'); } catch { /* private mode */ }
+    try {
+      window.localStorage.setItem("safari-3d-notice-dismissed", "1");
+    } catch {
+      /* private mode */
+    }
   };
 
   const { data: terrasen = [] } = useTerrasData();
   const { data: restaurants = [] } = useRestaurantsData();
   const { data: events = [] } = useEventsData();
   const terrasSunData = useTerrasSunData(selectedTerras?.uuid ?? null);
-  const restaurantSunData = useRestaurantSunData(selectedRestaurant?.uuid ?? null);
+  const restaurantSunData = useRestaurantSunData(
+    selectedRestaurant?.uuid ?? null,
+  );
   const eventSunData = useEventSunData(selectedEvent?.uuid ?? null);
   const location = useLocation();
 
@@ -172,15 +242,15 @@ export default function MapPageSafari() {
       minZoom: 12,
       maxBounds: MAX_BOUNDS,
       maxBoundsViscosity: 0.85,
-      preferCanvas: true,        // tile rendering on Canvas2D, no SVG cost
+      preferCanvas: true, // tile rendering on Canvas2D, no SVG cost
       zoomControl: false,
     });
 
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap',
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "© OpenStreetMap",
       maxZoom: 19,
     }).addTo(map);
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    L.control.zoom({ position: "bottomright" }).addTo(map);
 
     mapRef.current = map;
     // Cluster behaviour matches the desktop symbol layer: stop clustering at
@@ -194,10 +264,10 @@ export default function MapPageSafari() {
       maxClusterRadius: 42,
       iconCreateFunction: (cluster) => {
         const n = cluster.getChildCount();
-        const bg = n >= 25 ? '#B45F0A' : n >= 5 ? '#ED8A1F' : '#FFB554';
+        const bg = n >= 25 ? "#B45F0A" : n >= 5 ? "#ED8A1F" : "#FFB554";
         const size = n >= 25 ? 48 : n >= 5 ? 40 : 32;
         return L.divIcon({
-          className: '',
+          className: "",
           iconSize: [size, size],
           iconAnchor: [size / 2, size / 2],
           html: `<div style="
@@ -221,9 +291,17 @@ export default function MapPageSafari() {
   }, []);
 
   // Re-render markers on data / filter change.
-  const handlersRef = useRef({ setSelectedTerras, setSelectedRestaurant, setSelectedEvent });
+  const handlersRef = useRef({
+    setSelectedTerras,
+    setSelectedRestaurant,
+    setSelectedEvent,
+  });
   useEffect(() => {
-    handlersRef.current = { setSelectedTerras, setSelectedRestaurant, setSelectedEvent };
+    handlersRef.current = {
+      setSelectedTerras,
+      setSelectedRestaurant,
+      setSelectedEvent,
+    };
   });
 
   useEffect(() => {
@@ -233,44 +311,48 @@ export default function MapPageSafari() {
     layer.clearLayers();
 
     const addMarker = (
-      lng: number, lat: number, category: Category,
+      lng: number,
+      lat: number,
+      category: Category,
       onPick: () => void,
     ) => {
-      const m = L.marker([lat, lng], { icon: ICONS[category] })
-        .on('click', () => {
+      const m = L.marker([lat, lng], { icon: ICONS[category] }).on(
+        "click",
+        () => {
           onPick();
           map.flyTo([lat, lng], Math.max(map.getZoom(), 17), { duration: 0.9 });
-        });
+        },
+      );
       m.addTo(layer);
     };
 
-    if (layerFilter === 'terras' || layerFilter === 'all') {
+    if (layerFilter === "terras" || layerFilter === "all") {
       for (const t of terrasen) {
         const c = t.location?.coordinates;
         if (!c) continue;
-        addMarker(c[0], c[1], 'terras', () => {
+        addMarker(c[0], c[1], "terras", () => {
           handlersRef.current.setSelectedTerras(t);
           handlersRef.current.setSelectedRestaurant(null);
           handlersRef.current.setSelectedEvent(null);
         });
       }
     }
-    if (layerFilter === 'restaurants' || layerFilter === 'all') {
+    if (layerFilter === "restaurants" || layerFilter === "all") {
       for (const r of restaurants) {
         const c = r.location?.coordinates;
         if (!c) continue;
-        addMarker(c[0], c[1], 'restaurant', () => {
+        addMarker(c[0], c[1], "restaurant", () => {
           handlersRef.current.setSelectedRestaurant(r);
           handlersRef.current.setSelectedTerras(null);
           handlersRef.current.setSelectedEvent(null);
         });
       }
     }
-    if (layerFilter === 'events' || layerFilter === 'all') {
+    if (layerFilter === "events" || layerFilter === "all") {
       for (const ev of events) {
         const c = ev.location?.coordinates;
         if (!c) continue;
-        addMarker(c[0], c[1], 'event', () => {
+        addMarker(c[0], c[1], "event", () => {
           handlersRef.current.setSelectedEvent(ev);
           handlersRef.current.setSelectedTerras(null);
           handlersRef.current.setSelectedRestaurant(null);
@@ -287,15 +369,24 @@ export default function MapPageSafari() {
     if (!state?.focusId) return;
     const id = state.focusId;
     let coords: [number, number] | undefined;
-    if (state.type === 'terras') {
+    if (state.type === "terras") {
       const t = terrasen.find((x) => x.uuid === id);
-      if (t) { setSelectedTerras(t); coords = [t.location.coordinates[1], t.location.coordinates[0]]; }
-    } else if (state.type === 'restaurant') {
+      if (t) {
+        setSelectedTerras(t);
+        coords = [t.location.coordinates[1], t.location.coordinates[0]];
+      }
+    } else if (state.type === "restaurant") {
       const r = restaurants.find((x) => x.uuid === id);
-      if (r) { setSelectedRestaurant(r); coords = [r.location.coordinates[1], r.location.coordinates[0]]; }
-    } else if (state.type === 'event') {
+      if (r) {
+        setSelectedRestaurant(r);
+        coords = [r.location.coordinates[1], r.location.coordinates[0]];
+      }
+    } else if (state.type === "event") {
       const ev = events.find((x) => x.uuid === id);
-      if (ev) { setSelectedEvent(ev); coords = [ev.location.coordinates[1], ev.location.coordinates[0]]; }
+      if (ev) {
+        setSelectedEvent(ev);
+        coords = [ev.location.coordinates[1], ev.location.coordinates[0]];
+      }
     }
     if (coords) map.flyTo(coords, 18, { duration: 1.2 });
   }, [location.state, terrasen, restaurants, events]);
@@ -307,44 +398,68 @@ export default function MapPageSafari() {
     setSelectedRestaurant(null);
     setSelectedEvent(null);
     const [lng, lat] = t.location.coordinates;
-    mapRef.current.flyTo([lat, lng], Math.max(mapRef.current.getZoom(), 17), { duration: 0.9 });
+    mapRef.current.flyTo([lat, lng], Math.max(mapRef.current.getZoom(), 17), {
+      duration: 0.9,
+    });
   };
 
   const recenter = () => {
-    mapRef.current?.flyTo([INITIAL.lat, INITIAL.lng], INITIAL.zoom, { duration: 1 });
+    mapRef.current?.flyTo([INITIAL.lat, INITIAL.lng], INITIAL.zoom, {
+      duration: 1,
+    });
   };
 
-  const layerToggle = useMemo(() => (
-    <div className="flex items-center gap-0.5 rounded-full p-1"
-      style={{
-        background: 'var(--color-map-overlay)',
-        border: '1px solid var(--color-map-overlay-border)',
-        backdropFilter: 'blur(20px)',
-        boxShadow: 'var(--shadow-float)',
-      }}
-    >
-      {(['all', 'terras', 'restaurants', 'events'] as LayerFilter[]).map((f) => (
-        <button
-          key={f}
-          onClick={() => setLayerFilter(f)}
-          className="text-[11px] font-semibold transition-all"
-          style={{
-            padding: '6px 13px',
-            borderRadius: 999,
-            color: layerFilter === f ? '#FFFFFF' : 'var(--color-text-2)',
-            background: layerFilter === f ? 'var(--color-primary)' : 'transparent',
-          }}
-        >
-          {f === 'all' ? 'All' : f === 'terras' ? 'Terraces' : f === 'restaurants' ? 'Food' : 'Events'}
-        </button>
-      ))}
-    </div>
-  ), [layerFilter]);
+  const layerToggle = useMemo(
+    () => (
+      <div
+        className="flex items-center gap-0.5 rounded-full p-1"
+        style={{
+          background: "var(--color-map-overlay)",
+          border: "1px solid var(--color-map-overlay-border)",
+          backdropFilter: "blur(20px)",
+          boxShadow: "var(--shadow-float)",
+        }}
+      >
+        {(["all", "terras", "restaurants", "events"] as LayerFilter[]).map(
+          (f) => (
+            <button
+              key={f}
+              onClick={() => setLayerFilter(f)}
+              className="text-[11px] font-semibold transition-all"
+              style={{
+                padding: "6px 13px",
+                borderRadius: 999,
+                color: layerFilter === f ? "#FFFFFF" : "var(--color-text-2)",
+                background:
+                  layerFilter === f ? "var(--color-primary)" : "transparent",
+              }}
+            >
+              {f === "all"
+                ? "All"
+                : f === "terras"
+                  ? "Terraces"
+                  : f === "restaurants"
+                    ? "Food"
+                    : "Events"}
+            </button>
+          ),
+        )}
+      </div>
+    ),
+    [layerFilter],
+  );
 
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
       <div className="flex-1 relative overflow-hidden">
-        <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: 'var(--color-surface-2)' }} />
+        <div
+          ref={containerRef}
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "var(--color-surface-2)",
+          }}
+        />
 
         {/* Safari-only notice — explains why the map is 2D rather than the
             photoreal 3D experience desktop Chrome/Firefox users see. Anchored
@@ -355,41 +470,64 @@ export default function MapPageSafari() {
           <div
             className="absolute top-3 left-1/2 -translate-x-1/2 z-[1002] flex items-start gap-3 px-4 py-3 rounded-xl"
             style={{
-              maxWidth: 'calc(100vw - 24px)',
-              width: 'min(380px, calc(100vw - 24px))',
-              background: 'var(--color-map-overlay)',
-              border: '1px solid var(--color-map-overlay-border)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              boxShadow: 'var(--shadow-float)',
-              color: 'var(--color-text-1)',
+              maxWidth: "calc(100vw - 24px)",
+              width: "min(380px, calc(100vw - 24px))",
+              background: "var(--color-map-overlay)",
+              border: "1px solid var(--color-map-overlay-border)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              boxShadow: "var(--shadow-float)",
+              color: "var(--color-text-1)",
             }}
             role="status"
           >
             <svg
-              width="18" height="18" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              style={{ color: 'var(--color-primary)', marginTop: 2, flexShrink: 0 }}
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                color: "var(--color-primary)",
+                marginTop: 2,
+                flexShrink: 0,
+              }}
               aria-hidden="true"
             >
               <circle cx="12" cy="12" r="10" />
               <line x1="12" y1="8" x2="12" y2="12" />
               <circle cx="12" cy="16" r="0.5" fill="currentColor" />
             </svg>
-            <div className="flex-1 min-w-0" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
-              <p className="font-semibold mb-0.5">3D map isn't available on Safari</p>
+            <div
+              className="flex-1 min-w-0"
+              style={{ fontSize: 12.5, lineHeight: 1.45 }}
+            >
+              <p className="font-semibold mb-0.5">
+                3D map isn't available on Safari
+              </p>
               <p className="text-text-2">
-                You're seeing a 2D version. Open the page in Chrome or Firefox for the
-                full photoreal 3D experience.
+                You're seeing a 2D version. Open the page in another browser for
+                the full photoreal 3D experience.
               </p>
             </div>
             <button
               onClick={dismissNotice}
               className="p-1 rounded shrink-0 -mt-1 -mr-1"
-              style={{ color: 'var(--color-text-3)' }}
+              style={{ color: "var(--color-text-3)" }}
               aria-label="Dismiss"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -417,19 +555,32 @@ export default function MapPageSafari() {
           onClick={recenter}
           className="absolute bottom-5 left-5 z-[1000] rounded-full"
           style={{
-            width: 44, height: 44,
-            background: 'var(--color-map-overlay)',
-            border: '1px solid var(--color-map-overlay-border)',
-            backdropFilter: 'blur(20px)',
-            boxShadow: 'var(--shadow-float)',
-            color: 'var(--color-primary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 44,
+            height: 44,
+            background: "var(--color-map-overlay)",
+            border: "1px solid var(--color-map-overlay-border)",
+            backdropFilter: "blur(20px)",
+            boxShadow: "var(--shadow-float)",
+            color: "var(--color-primary)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
           aria-label="Recenter on Ghent"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <circle cx="12" cy="12" r="3" /><line x1="12" y1="2" x2="12" y2="5" />
-            <line x1="12" y1="19" x2="12" y2="22" /><line x1="2" y1="12" x2="5" y2="12" />
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <line x1="12" y1="2" x2="12" y2="5" />
+            <line x1="12" y1="19" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="5" y2="12" />
             <line x1="19" y1="12" x2="22" y2="12" />
           </svg>
         </button>
@@ -437,40 +588,66 @@ export default function MapPageSafari() {
         <button
           className="md:hidden absolute bottom-5 right-5 z-[1001] w-14 h-14 rounded-full flex items-center justify-center"
           style={{
-            background: 'linear-gradient(135deg, #FFD075, #ED8A1F)',
-            color: 'var(--color-on-primary)',
-            boxShadow: 'var(--shadow-amber-lg)',
-            border: '2px solid #FFFFFF',
+            background: "linear-gradient(135deg, #FFD075, #ED8A1F)",
+            color: "var(--color-on-primary)",
+            boxShadow: "var(--shadow-amber-lg)",
+            border: "2px solid #FFFFFF",
           }}
           onClick={() => setTimelineOpen(true)}
           aria-label="Open sun timeline"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-            <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
           </svg>
         </button>
 
         {timelineOpen && (
-          <div className="md:hidden fixed inset-0 z-[1004]"
-            style={{ background: 'rgba(26,22,17,0.55)', backdropFilter: 'blur(3px)' }}
+          <div
+            className="md:hidden fixed inset-0 z-[1004]"
+            style={{
+              background: "rgba(26,22,17,0.55)",
+              backdropFilter: "blur(3px)",
+            }}
             onClick={() => setTimelineOpen(false)}
           />
         )}
         <div
           className={`md:hidden fixed inset-y-0 right-0 z-[1005] w-32 flex flex-col transition-transform duration-300 ease-in-out ${
-            timelineOpen ? 'translate-x-0' : 'translate-x-full'
+            timelineOpen ? "translate-x-0" : "translate-x-full"
           }`}
           style={{
-            background: 'var(--color-map-overlay)',
-            backdropFilter: 'blur(20px)',
-            borderLeft: '1px solid var(--color-map-overlay-border)',
-            boxShadow: 'var(--shadow-float)',
+            background: "var(--color-map-overlay)",
+            backdropFilter: "blur(20px)",
+            borderLeft: "1px solid var(--color-map-overlay-border)",
+            boxShadow: "var(--shadow-float)",
           }}
         >
           <div className="flex justify-end px-2 pt-2">
-            <button onClick={() => setTimelineOpen(false)} className="p-2" aria-label="Close timeline">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            <button
+              onClick={() => setTimelineOpen(false)}
+              className="p-2"
+              aria-label="Close timeline"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
@@ -484,7 +661,11 @@ export default function MapPageSafari() {
           terrasIntensity={terrasSunData.intensity}
           restaurantIntensity={restaurantSunData.intensity}
           eventIntensity={eventSunData.intensity}
-          onClose={() => { setSelectedTerras(null); setSelectedRestaurant(null); setSelectedEvent(null); }}
+          onClose={() => {
+            setSelectedTerras(null);
+            setSelectedRestaurant(null);
+            setSelectedEvent(null);
+          }}
         />
       </div>
 
