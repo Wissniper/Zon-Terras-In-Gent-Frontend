@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { searchTerras } from '../../services/terrasService';
 import { intensityColor, intensityLabel } from '../../utils/intensity';
-import type { Terras } from '../../types';
 
 interface Props {
   onPick: (uuid: string) => void;
@@ -10,17 +9,22 @@ interface Props {
 /**
  * Top-right floating leaderboard. Shows the 5 sunniest terraces right now and
  * lets the user click through to focus one on the map.
- *
- * Surface and text both follow the active theme via tokens.
  */
 export default function SunniestNowPanel({ onPick }: Props) {
   const { data, isLoading } = useQuery({
     queryKey: ['sunniest-now'],
-    queryFn: () => searchTerras({ sunnyOnly: true }),
-    staleTime: 60_000,
+    // Don't filter by sunnyOnly (backend: intensity > 50). On overcast days
+    // that empties the leaderboard. Top-5 by intensity DESC is what we want
+    // regardless of weather — backend already sorts intensity:-1.
+    queryFn: () => searchTerras(),
+    staleTime: 30_000,
+    refetchInterval: 60_000, // sun moves; keep the "live" badge honest
+    refetchOnWindowFocus: true,
   });
 
-  const items: (Terras & { '@id': string })[] = (data?.['hydra:member'] ?? []).slice(0, 5);
+  const items = [...(data?.['hydra:member'] ?? [])]
+    .sort((a, b) => b.intensity - a.intensity)
+    .slice(0, 5);
 
   return (
     <div
@@ -49,7 +53,7 @@ export default function SunniestNowPanel({ onPick }: Props) {
 
       {!isLoading && items.length === 0 && (
         <p className="text-xs py-3 text-text-3">
-          No fully sunny terraces right now.
+          No terraces available right now.
         </p>
       )}
 
