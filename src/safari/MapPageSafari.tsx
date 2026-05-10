@@ -146,6 +146,14 @@ export default function MapPageSafari() {
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(false);
+  const [noticeVisible, setNoticeVisible] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.localStorage.getItem('safari-3d-notice-dismissed') !== '1';
+  });
+  const dismissNotice = () => {
+    setNoticeVisible(false);
+    try { window.localStorage.setItem('safari-3d-notice-dismissed', '1'); } catch { /* private mode */ }
+  };
 
   const { data: terrasen = [] } = useTerrasData();
   const { data: restaurants = [] } = useRestaurantsData();
@@ -338,6 +346,57 @@ export default function MapPageSafari() {
       <div className="flex-1 relative overflow-hidden">
         <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: 'var(--color-surface-2)' }} />
 
+        {/* Safari-only notice — explains why the map is 2D rather than the
+            photoreal 3D experience desktop Chrome/Firefox users see. Anchored
+            top-center so it doesn't collide with the LiveStatePanel (top-left)
+            or the SunniestNowPanel (top-right). The dismissal persists in
+            localStorage so it shows once per browser. */}
+        {noticeVisible && (
+          <div
+            className="absolute top-3 left-1/2 -translate-x-1/2 z-[1002] flex items-start gap-3 px-4 py-3 rounded-xl"
+            style={{
+              maxWidth: 'calc(100vw - 24px)',
+              width: 'min(380px, calc(100vw - 24px))',
+              background: 'var(--color-map-overlay)',
+              border: '1px solid var(--color-map-overlay-border)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              boxShadow: 'var(--shadow-float)',
+              color: 'var(--color-text-1)',
+            }}
+            role="status"
+          >
+            <svg
+              width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              style={{ color: 'var(--color-primary)', marginTop: 2, flexShrink: 0 }}
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <circle cx="12" cy="16" r="0.5" fill="currentColor" />
+            </svg>
+            <div className="flex-1 min-w-0" style={{ fontSize: 12.5, lineHeight: 1.45 }}>
+              <p className="font-semibold mb-0.5">3D map isn't available on Safari</p>
+              <p className="text-text-2">
+                You're seeing a 2D version. Open the page in Chrome or Firefox for the
+                full photoreal 3D experience.
+              </p>
+            </div>
+            <button
+              onClick={dismissNotice}
+              className="p-1 rounded shrink-0 -mt-1 -mr-1"
+              style={{ color: 'var(--color-text-3)' }}
+              aria-label="Dismiss"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         <div className="hidden md:block absolute top-5 left-5 z-[1000] max-w-[260px]">
           <LiveStatePanel />
         </div>
@@ -347,7 +406,10 @@ export default function MapPageSafari() {
           <SunniestNowPanel onPick={focusTerras} />
         </div>
 
-        <div className="md:hidden absolute top-3 left-1/2 -translate-x-1/2 z-[1000]">
+        <div
+          className="md:hidden absolute left-1/2 -translate-x-1/2 z-[1000] transition-all"
+          style={{ top: noticeVisible ? 100 : 12 }}
+        >
           {layerToggle}
         </div>
 
