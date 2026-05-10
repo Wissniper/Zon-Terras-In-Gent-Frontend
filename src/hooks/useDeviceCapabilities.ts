@@ -18,19 +18,36 @@ export interface DeviceCapabilities {
 
 function probeWebGL(): { maxTextureSize: number; renderer: string; webgl2: boolean } | null {
   if (typeof document === 'undefined') return null;
+  // Use WebGL1 for the probe and a 1×1 canvas to minimise GPU footprint.
+  // Detect WebGL2 via the global type check rather than creating a second
+  // context — Safari's context budget is tight, and orphaned contexts
+  // hijack the limits Mapbox reads later (`MAX_UNIFORM_BLOCK_SIZE = 0`,
+  // blank-canvas failure mode).
+  let gl: WebGLRenderingContext | null = null;
   try {
     const canvas = document.createElement('canvas');
-    const gl2 = canvas.getContext('webgl2') as WebGL2RenderingContext | null;
-    const gl = (gl2 ?? canvas.getContext('webgl')) as WebGLRenderingContext | null;
+    canvas.width = 1;
+    canvas.height = 1;
+    gl = canvas.getContext('webgl') as WebGLRenderingContext | null;
     if (!gl) return null;
     const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
     const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
     const renderer = debugInfo
       ? (gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) as string)
       : '';
-    return { maxTextureSize, renderer, webgl2: gl2 != null };
+    const webgl2 =
+      typeof window !== 'undefined' && 'WebGL2RenderingContext' in window;
+    return { maxTextureSize, renderer, webgl2 };
   } catch {
     return null;
+  } finally {
+    // CRITICAL on Safari: explicitly drop the probe context so Mapbox can
+    // claim a clean one. Without this, Safari recycles ours into a degraded
+    // state and Mapbox gets `device limit 0` for UBO sizes.
+    if (gl) {
+      const lose = gl.getExtension('WEBGL_lose_context');
+      if (lose) lose.loseContext();
+    }
   }
 }
 
