@@ -10,14 +10,14 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surfaces — soft beige stationery. Clearly lighter and less saturated
-     than the previous honey-tan palette: more parchment/cream, less honey. */
-  --color-bg:          #F4EEDD;
-  --color-surface:     #FCF8EC;
-  --color-surface-2:   #E8DEC6;
-  --color-surface-3:   #D5C9AE;
-  --color-border:      #DAD0B8;
-  --color-track:       #E4D8BD;
+  /* Surfaces — clean cream-beige stationery. Substantially lighter and
+     clearly less yellow than the original honey-tan palette. */
+  --color-bg:          #F5EFE0;
+  --color-surface:     #FBF7EC;
+  --color-surface-2:   #E6DCC4;
+  --color-surface-3:   #CFC4A8;
+  --color-border:      #D6CCB2;
+  --color-track:       #E0D5BA;
 
   /* Brand — saturated burnt-orange that pops against the beige canvas.
      Deep enough to pass WCAG AA as text colour while staying unmistakably
@@ -43,9 +43,9 @@
   --color-text-3: #8E8270;
 
   /* Sidebar tokens kept for back-compat — beige scheme */
-  --color-sidebar:         #E8DEC6;
-  --color-sidebar-surface: #FCF8EC;
-  --color-sidebar-border:  #DAD0B8;
+  --color-sidebar:         #E6DCC4;
+  --color-sidebar-surface: #FBF7EC;
+  --color-sidebar-border:  #D6CCB2;
   --color-sidebar-muted:   #8E8270;
   --color-sidebar-accent:  #5C503C;
   --color-sidebar-text:    #2A2418;
@@ -54,7 +54,7 @@
   /* Map overlay — translucent surface shared by NavBar, SunTimeline, and the
      floating panels over Mapbox. Tinted light beige so chrome reads as part
      of the page, not pasted on. */
-  --color-map-overlay:        rgba(252,248,236,0.92);
+  --color-map-overlay:        rgba(251,247,236,0.92);
   --color-map-overlay-border: rgba(80,70,52,0.12);
 
   /* Shadows — warm umber, slightly cooler to match the beige surface */
