@@ -16,5 +16,7 @@ export function useRestaurantsData(options: Options = {}) {
     },
     enabled,
     staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }

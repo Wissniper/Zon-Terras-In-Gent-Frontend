@@ -16,5 +16,7 @@ export function useTerrasData(options: Options = {}) {
     },
     enabled,
     staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 }
