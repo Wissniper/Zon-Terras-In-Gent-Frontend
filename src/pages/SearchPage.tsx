@@ -227,19 +227,19 @@ export default function SearchPage() {
 
   function handleQuery(v: string) { setQuery(v); setPage(0); }
 
-  // Top sunny terraces for the editorial sections. Backend already sorts
-  // intensity:-1 and applies shadowScore, so the response is render-ready.
-  // Don't pass sunnyOnly — on cloudy days that empties the hero.
+  // Top sunny terraces for the editorial sections. Backend sorts intensity:-1
+  // and applies shadowScore, so the response is render-ready. Limit to 24 —
+  // the strip + hero only need that many.
   const editorial = useQuery({
     queryKey: ['discover-editorial', timeKey],
-    queryFn: () => searchTerras({ time: timeKey }),
+    queryFn: () => searchTerras({ time: timeKey, limit: 24 }),
     staleTime: 0,
     refetchInterval: 60_000,
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
   });
   const editorialPool = useMemo(
-    () => (editorial.data?.['hydra:member'] ?? []).slice(0, 24),
+    () => editorial.data?.['hydra:member'] ?? [],
     [editorial.data],
   );
   const featured = editorialPool[0];
