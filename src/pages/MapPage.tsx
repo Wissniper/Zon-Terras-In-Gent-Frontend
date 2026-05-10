@@ -12,11 +12,15 @@ import { useSunPosition } from '../hooks/useSunPosition';
 import { useTerrasSunData } from '../hooks/useTerrasSunData';
 import { useRestaurantSunData } from '../hooks/useRestaurantSunData';
 import { useEventSunData } from '../hooks/useEventSunData';
+import { useDeviceCapabilities } from '../hooks/useDeviceCapabilities';
+import { useMapLoadingState } from '../hooks/useMapLoadingState';
+import { useViewportBounds } from '../hooks/useViewportBounds';
 import { intensityColor, intensityLabel } from '../utils/intensity';
 import AtmosphericLighting from '../components/AtmosphericLighting';
 import SunTimeline from '../components/SunTimeline';
 import LiveStatePanel from '../components/map/LiveStatePanel';
 import SunniestNowPanel from '../components/map/SunniestNowPanel';
+import MapSkeleton from '../components/map/MapSkeleton';
 import Pill from '../components/ui/Pill';
 import type { Terras, Restaurant, Event } from '../types';
 
@@ -161,9 +165,19 @@ export default function MapPage() {
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
-  const { data: terrasen = [] } = useTerrasData();
-  const { data: restaurants = [] } = useRestaurantsData();
-  const { data: events = [] } = useEventsData();
+  const caps = useDeviceCapabilities();
+  const viewportBounds = useViewportBounds(mapRef, mapLoaded);
+  const loadingState = useMapLoadingState(mapRef, mapLoaded);
+  const { data: terrasenAll = [] } = useTerrasData({ bounds: viewportBounds });
+  const { data: restaurantsAll = [] } = useRestaurantsData({ bounds: viewportBounds });
+  const { data: eventsAll = [] } = useEventsData({ bounds: viewportBounds });
+
+  // Cap visible markers on low-end devices to keep DOM size & frame budget sane.
+  // Backend already viewport-filters; this is a final per-device cap.
+  const MARKER_CAP = caps.isLowEnd ? 75 : 500;
+  const terrasen = useMemo(() => terrasenAll.slice(0, MARKER_CAP), [terrasenAll, MARKER_CAP]);
+  const restaurants = useMemo(() => restaurantsAll.slice(0, MARKER_CAP), [restaurantsAll, MARKER_CAP]);
+  const events = useMemo(() => eventsAll.slice(0, MARKER_CAP), [eventsAll, MARKER_CAP]);
   const sunPosition = useSunPosition();
   const terrasSunData = useTerrasSunData(selectedTerras?.uuid ?? null);
   const restaurantSunData = useRestaurantSunData(selectedRestaurant?.uuid ?? null);
@@ -260,6 +274,11 @@ export default function MapPage() {
           style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
           mapLib={mapboxgl}
           mapStyle="mapbox://styles/mapbox/standard"
+          antialias={caps.antialias}
+          fadeDuration={caps.fadeDurationMs}
+          maxPitch={caps.isLowEnd ? 60 : 75}
+          renderWorldCopies={false}
+          preserveDrawingBuffer={false}
           onLoad={() => {
             const map = mapRef.current?.getMap() as MapboxMap;
             map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
@@ -268,7 +287,12 @@ export default function MapPage() {
           maxBounds={[3.65, 50.99, 3.82, 51.12]}
           minZoom={12}
         >
-          <AtmosphericLighting mapRef={mapRef} sunPosition={sunPosition} mapLoaded={mapLoaded} />
+          <AtmosphericLighting
+            mapRef={mapRef}
+            sunPosition={sunPosition}
+            mapLoaded={mapLoaded}
+            enableShadows={caps.enableShadows}
+          />
 
           {/* Terraces */}
           {(layerFilter === 'terras' || layerFilter === 'all') &&
@@ -283,7 +307,7 @@ export default function MapPage() {
                   selectTerras(t);
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                <div className="marker-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                   <TerrasMarkerSvg />
                   <MarkerLabel>{t.name}</MarkerLabel>
                 </div>
@@ -303,7 +327,7 @@ export default function MapPage() {
                   selectRestaurant(r);
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                <div className="marker-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                   <RestaurantMarkerSvg />
                   <MarkerLabel>{r.name}</MarkerLabel>
                 </div>
@@ -323,7 +347,7 @@ export default function MapPage() {
                   selectEvent(ev);
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                <div className="marker-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                   <EventMarkerSvg />
                   <MarkerLabel>{ev.title}</MarkerLabel>
                 </div>
@@ -331,6 +355,14 @@ export default function MapPage() {
             ))}
 
         </Map>
+
+        {/* Skeleton overlay — only during the initial map load. After Mapbox
+            reports its first `idle`, subsequent pan/zoom transitions rely on
+            built-in fadeDuration tile cross-fade for continuity. */}
+        <MapSkeleton
+          visible={!mapLoaded || !loadingState.ready}
+          progress={loadingState.progress}
+        />
 
         {/* ── Floating panels ─────────────────────────── */}
 
