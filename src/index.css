@@ -10,18 +10,18 @@
    ────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Surfaces — pale honey-tan stack. Visibly warm (light brown), but soft enough
-     to feel like vintage stationery rather than a coffee shop. */
-  --color-bg:          #EFE4CB;
-  --color-surface:     #F8F0DC;
-  --color-surface-2:   #E5D5B0;
-  --color-surface-3:   #D2BF93;
-  --color-border:      #D2BF93;
-  --color-track:       #DCC9A1;
+  /* Surfaces — soft beige stationery. Cooler and lighter than the previous
+     honey-tan palette, less yellow saturation, more parchment/cream. */
+  --color-bg:          #F1ECDF;
+  --color-surface:     #FAF6EB;
+  --color-surface-2:   #E8E0CC;
+  --color-surface-3:   #D5C9AF;
+  --color-border:      #D6CCB6;
+  --color-track:       #DFD4BD;
 
-  /* Brand — saturated burnt-orange that pops against the honey-tan canvas.
-     Deep enough to pass WCAG AA as text colour (≈6.8:1 on the page bg)
-     while staying unmistakably "sun orange", not brown. */
+  /* Brand — saturated burnt-orange that pops against the beige canvas.
+     Deep enough to pass WCAG AA as text colour while staying unmistakably
+     "sun orange", not brown. */
   --color-primary:        #A85906;
   --color-primary-light:  #FFEAC8;
   --color-primary-border: rgba(168,89,6,0.36);
@@ -29,38 +29,39 @@
   --color-gold:           #C8741A;          /* gold accent (markers, headings) */
   --color-coral:          #C2421F;          /* deeper coral for events */
   --color-blush:          #FFCDB8;
-  --color-sage:           #4F7560;          /* deeper sage so it reads on light tan */
+  --color-sage:           #4F7560;          /* deeper sage so it reads on light beige */
 
   /* Differentiation accents */
   --color-sky:        #4A8AAB;
   --color-sky-light:  #E5EFF5;
   --color-terra:      #FF6B4A;              /* alias for coral */
 
-  /* Text — warm near-black on the honey-tan surface */
-  --color-text-1: #2A1F0F;
-  --color-text-2: #5A4830;
-  --color-text-3: #8E7A5C;
+  /* Text — warm near-black on the beige surface, very slightly cooler than
+     the old honey-tan tones so it doesn't read as muddy. */
+  --color-text-1: #2A2418;
+  --color-text-2: #5C503C;
+  --color-text-3: #8E8270;
 
-  /* Sidebar tokens kept for back-compat — honey-tan scheme */
-  --color-sidebar:         #E5D5B0;
-  --color-sidebar-surface: #F8F0DC;
-  --color-sidebar-border:  #D2BF93;
-  --color-sidebar-muted:   #8E7A5C;
-  --color-sidebar-accent:  #5A4830;
-  --color-sidebar-text:    #2A1F0F;
+  /* Sidebar tokens kept for back-compat — beige scheme */
+  --color-sidebar:         #E8E0CC;
+  --color-sidebar-surface: #FAF6EB;
+  --color-sidebar-border:  #D6CCB6;
+  --color-sidebar-muted:   #8E8270;
+  --color-sidebar-accent:  #5C503C;
+  --color-sidebar-text:    #2A2418;
   --color-sidebar-brand:   #ED8A1F;
 
   /* Map overlay — translucent surface shared by NavBar, SunTimeline, and the
-     floating panels over Mapbox. Tinted light tan so chrome reads as part of
-     the page, not pasted on. */
-  --color-map-overlay:        rgba(247,237,213,0.92);
-  --color-map-overlay-border: rgba(80,60,40,0.12);
+     floating panels over Mapbox. Tinted light beige so chrome reads as part
+     of the page, not pasted on. */
+  --color-map-overlay:        rgba(250,246,235,0.92);
+  --color-map-overlay-border: rgba(80,70,52,0.12);
 
-  /* Shadows — warm umber to harmonise with the tan surface */
-  --shadow-card:       0 2px 14px rgba(80,60,40,0.08);
-  --shadow-card-hover: 0 8px 28px rgba(80,60,40,0.16);
-  --shadow-soft:       0 1px 12px rgba(80,60,40,0.08);
-  --shadow-float:      0 12px 40px rgba(80,60,40,0.18);
+  /* Shadows — warm umber, slightly cooler to match the beige surface */
+  --shadow-card:       0 2px 14px rgba(80,70,52,0.08);
+  --shadow-card-hover: 0 8px 28px rgba(80,70,52,0.16);
+  --shadow-soft:       0 1px 12px rgba(80,70,52,0.08);
+  --shadow-float:      0 12px 40px rgba(80,70,52,0.18);
   --shadow-amber:      0 4px 22px rgba(237,138,31,0.30);
   --shadow-amber-lg:   0 10px 40px rgba(237,138,31,0.36);
 }
