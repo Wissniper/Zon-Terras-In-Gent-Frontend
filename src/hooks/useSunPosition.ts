@@ -21,11 +21,17 @@ const GHENT_LNG = 3.7174;
 export function useSunPosition(): { azimuth: number; altitude: number } | null {
   const { selectedTime } = useSelectedTime();
 
+  const minuteKey = useMemo(() => {
+    const d = new Date(selectedTime);
+    d.setSeconds(0, 0);
+    return d.toISOString();
+  }, [selectedTime]);
+
   const { data } = useQuery<SunPositionResponse>({
-    queryKey: ['sun-position', selectedTime],
+    queryKey: ['sun-position', minuteKey],
     queryFn: async () => {
       const { data } = await api.get<SunPositionResponse>(
-        `/sun/${GHENT_LAT}/${GHENT_LNG}/${selectedTime}`,
+        `/sun/${GHENT_LAT}/${GHENT_LNG}/${minuteKey}`,
       );
       return data;
     },

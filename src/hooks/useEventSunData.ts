@@ -10,9 +10,15 @@ export function useEventSunData(uuid: string | null): {
 } {
   const { selectedTime } = useSelectedTime();
 
+  const minuteKey = useMemo(() => {
+    const d = new Date(selectedTime);
+    d.setSeconds(0, 0);
+    return d.toISOString();
+  }, [selectedTime]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['sun-event-shadow', uuid, selectedTime],
-    queryFn: () => fetchSunForEvent(uuid!, selectedTime),
+    queryKey: ['sun-event-shadow', uuid, minuteKey],
+    queryFn: () => fetchSunForEvent(uuid!, minuteKey),
     enabled: !!uuid,
     staleTime: 60_000,
   });

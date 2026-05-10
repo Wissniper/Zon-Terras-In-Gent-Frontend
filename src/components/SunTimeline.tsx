@@ -88,12 +88,16 @@ export default function SunTimeline({ orientation = 'horizontal' }: Props) {
   // few minutes of real wall-clock time. Without this the displayed clock
   // freezes at the value it had when the page loaded (or when "Now" was last
   // pressed) and only updates on refresh.
+  // Snap to the minute and skip the update when the rounded value hasn't
+  // changed — every change to selectedTime invalidates downstream queries
+  // (useSunPosition, useTerrasSunData, etc.), so per-second precision would
+  // refetch the backend every tick.
   useEffect(() => {
     const id = setInterval(() => {
       const now = Date.now();
-      // Treat anything within 5 minutes of real-now as "tracking now".
       if (Math.abs(now - new Date(selectedTime).getTime()) < 5 * 60_000) {
-        setSelectedTime(new Date(now).toISOString());
+        const rounded = new Date(Math.floor(now / 60_000) * 60_000).toISOString();
+        if (rounded !== selectedTime) setSelectedTime(rounded);
       }
     }, 30_000);
     return () => clearInterval(id);

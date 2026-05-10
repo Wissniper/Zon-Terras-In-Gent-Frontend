@@ -10,9 +10,15 @@ export function useRestaurantSunData(uuid: string | null): {
 } {
   const { selectedTime } = useSelectedTime();
 
+  const minuteKey = useMemo(() => {
+    const d = new Date(selectedTime);
+    d.setSeconds(0, 0);
+    return d.toISOString();
+  }, [selectedTime]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['sun-restaurant-shadow', uuid, selectedTime],
-    queryFn: () => fetchSunForRestaurant(uuid!, selectedTime),
+    queryKey: ['sun-restaurant-shadow', uuid, minuteKey],
+    queryFn: () => fetchSunForRestaurant(uuid!, minuteKey),
     enabled: !!uuid,
     staleTime: 60_000,
   });

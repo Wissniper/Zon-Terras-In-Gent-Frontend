@@ -9,9 +9,15 @@ export function useTerrasSunData(uuid: string | null): {
 } {
   const { selectedTime } = useSelectedTime();
 
+  const minuteKey = useMemo(() => {
+    const d = new Date(selectedTime);
+    d.setSeconds(0, 0);
+    return d.toISOString();
+  }, [selectedTime]);
+
   const { data, isLoading } = useQuery({
-    queryKey: ['sun-terras-shadow', uuid, selectedTime],
-    queryFn: () => fetchSunForTerras(uuid!, selectedTime),
+    queryKey: ['sun-terras-shadow', uuid, minuteKey],
+    queryFn: () => fetchSunForTerras(uuid!, minuteKey),
     enabled: !!uuid,
     staleTime: 60_000,
   });
