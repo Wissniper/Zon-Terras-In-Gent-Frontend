@@ -2,40 +2,48 @@ import { useEffect, useState, type RefObject } from 'react';
 import type { MapRef } from 'react-map-gl/mapbox';
 
 /**
- * Subscribes to the map's `zoom` event and reports the current zoom level.
+ * Boolean hook: `true` when the current zoom is at or above `showAt`,
+ * `false` when it drops below `hideAt`. Hysteresis prevents flicker.
  *
- * Updates are throttled to one per animation frame so a slow pinch-zoom does
- * not trigger a re-render every micro-step.
+ * Crucially, the React state only updates on threshold *crossings* — every
+ * intermediate zoom-tick is read directly from the Mapbox instance, so a
+ * pinch-zoom does not trigger one parent re-render per frame.
  */
-export function useMapZoom(
+export function useZoomThreshold(
   mapRef: RefObject<MapRef | null>,
   mapLoaded: boolean,
-): number {
-  const [zoom, setZoom] = useState<number>(0);
+  showAt: number,
+  hideAt: number,
+): boolean {
+  const [active, setActive] = useState(false);
 
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
     const map = mapRef.current.getMap();
 
-    setZoom(map.getZoom());
+    let isActive = false;
+    setActive(false);
 
-    let raf: number | null = null;
-    const onZoom = () => {
-      if (raf !== null) return;
-      raf = requestAnimationFrame(() => {
-        raf = null;
-        setZoom(map.getZoom());
-      });
+    const evaluate = () => {
+      const z = map.getZoom();
+      if (!isActive && z >= showAt) {
+        isActive = true;
+        setActive(true);
+      } else if (isActive && z < hideAt) {
+        isActive = false;
+        setActive(false);
+      }
     };
 
-    map.on('zoom', onZoom);
-    map.on('zoomend', onZoom);
+    evaluate();
+    map.on('zoomend', evaluate);
+    map.on('zoom', evaluate);
+
     return () => {
-      map.off('zoom', onZoom);
-      map.off('zoomend', onZoom);
-      if (raf !== null) cancelAnimationFrame(raf);
+      map.off('zoomend', evaluate);
+      map.off('zoom', evaluate);
     };
-  }, [mapLoaded, mapRef]);
+  }, [mapLoaded, mapRef, showAt, hideAt]);
 
-  return zoom;
+  return active;
 }
