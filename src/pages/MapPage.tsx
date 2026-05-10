@@ -14,7 +14,6 @@ import { useRestaurantSunData } from '../hooks/useRestaurantSunData';
 import { useEventSunData } from '../hooks/useEventSunData';
 import { useDeviceCapabilities } from '../hooks/useDeviceCapabilities';
 import { useMapLoadingState } from '../hooks/useMapLoadingState';
-import { useZoomThreshold } from '../hooks/useMapZoom';
 import { intensityColor, intensityLabel } from '../utils/intensity';
 import AtmosphericLighting from '../components/AtmosphericLighting';
 import SunTimeline from '../components/SunTimeline';
@@ -96,19 +95,17 @@ export default function MapPage() {
   const caps = useDeviceCapabilities();
   const loadingState = useMapLoadingState(mapRef, mapLoaded);
 
-  // Markers are gated on the map being interactive AND the user having zoomed
-  // in far enough that 3D buildings are visible. Hysteresis: show at 15.5,
-  // hide at 14.5 — prevents flicker on tiny zoom-outs. The hook only fires a
-  // re-render when the threshold is crossed, not on every zoom tick.
-  const zoomedIn = useZoomThreshold(mapRef, mapLoaded, 15.5, 14.5);
-
   // Three queries fire in parallel from mount — TanStack Query schedules them
   // concurrently, so the dataset stream fully overlaps Mapbox's style/tile load.
   const { data: terrasen = [] } = useTerrasData();
   const { data: restaurants = [] } = useRestaurantsData();
   const { data: events = [] } = useEventsData();
 
-  const showMarkers = loadingState.ready && zoomedIn;
+  // Markers are visible the moment the map fires its first idle. They cluster
+  // automatically when zoomed out and split apart as the user zooms in.
+  // Off-screen points are filtered out by MapMarkersLayer's viewport-bounds
+  // culling, so the GeoJSON source only ever holds visible-region features.
+  const showMarkers = loadingState.ready;
   const selectedUuid =
     selectedTerras?.uuid ?? selectedRestaurant?.uuid ?? selectedEvent?.uuid ?? null;
   const sunPosition = useSunPosition();
@@ -246,30 +243,6 @@ export default function MapPage() {
         {/* Lightweight loading curtain — visible only until Mapbox fires
             its first `idle` event. Pure CSS, no SVG animations. */}
         <MapSkeleton visible={!mapLoaded || !loadingState.ready} />
-
-        {/* Zoom-in hint — shown when the map is loaded but the user hasn't
-            zoomed in far enough for 3D buildings + markers. */}
-        {loadingState.ready && !zoomedIn && (
-          <div
-            className="absolute bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
-            style={{
-              padding: '8px 14px',
-              borderRadius: 999,
-              background: 'var(--color-map-overlay)',
-              border: '1px solid var(--color-map-overlay-border)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              boxShadow: 'var(--shadow-soft)',
-              color: 'var(--color-text-2)',
-              fontSize: 12,
-              fontWeight: 600,
-              letterSpacing: '0.02em',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            Zoom in to reveal terraces & venues
-          </div>
-        )}
 
         {/* ── Floating panels ─────────────────────────── */}
 

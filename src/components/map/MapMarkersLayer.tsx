@@ -82,17 +82,26 @@ interface Feature {
   properties: { uuid: string; name: string; category: Category };
 }
 
+interface Bounds { n: number; s: number; e: number; w: number }
+
+function inBounds(lng: number, lat: number, b: Bounds | null): boolean {
+  if (!b) return true;
+  return lng >= b.w && lng <= b.e && lat >= b.s && lat <= b.n;
+}
+
 function buildFeatures(
   terrasen: Terras[],
   restaurants: Restaurant[],
   events: Event[],
   layerFilter: LayerFilter,
+  bounds: Bounds | null,
 ): Feature[] {
   const features: Feature[] = [];
   if (layerFilter === 'terras' || layerFilter === 'all') {
     for (const t of terrasen) {
       const c = t.location?.coordinates;
       if (!c || c.length < 2) continue;
+      if (!inBounds(c[0], c[1], bounds)) continue;
       features.push({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [c[0], c[1]] },
@@ -104,6 +113,7 @@ function buildFeatures(
     for (const r of restaurants) {
       const c = r.location?.coordinates;
       if (!c || c.length < 2) continue;
+      if (!inBounds(c[0], c[1], bounds)) continue;
       features.push({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [c[0], c[1]] },
@@ -115,6 +125,7 @@ function buildFeatures(
     for (const ev of events) {
       const c = ev.location?.coordinates;
       if (!c || c.length < 2) continue;
+      if (!inBounds(c[0], c[1], bounds)) continue;
       features.push({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [c[0], c[1]] },
@@ -277,6 +288,50 @@ export default function MapMarkersLayer({
   });
 
   const [setupReady, setSetupReady] = useState(false);
+  const [bounds, setBounds] = useState<Bounds | null>(null);
+
+  // Track the current viewport (with 12% padding) so we only feed the
+  // GeoJSON source the points that could plausibly become visible.
+  // Debounced 150ms — supercluster rebuilds its index on every setData,
+  // and we don't want that running mid-pan.
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+    const map = mapRef.current.getMap() as MapboxMap;
+
+    const compute = (): Bounds | null => {
+      const b = map.getBounds();
+      if (!b) return null;
+      const ne = b.getNorthEast();
+      const sw = b.getSouthWest();
+      const latPad = (ne.lat - sw.lat) * 0.12;
+      const lngPad = (ne.lng - sw.lng) * 0.12;
+      return {
+        n: ne.lat + latPad,
+        s: sw.lat - latPad,
+        e: ne.lng + lngPad,
+        w: sw.lng - lngPad,
+      };
+    };
+
+    setBounds(compute());
+
+    let timer: number | null = null;
+    const onMoveEnd = () => {
+      if (timer !== null) window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        timer = null;
+        setBounds(compute());
+      }, 150);
+    };
+
+    map.on('moveend', onMoveEnd);
+    map.on('zoomend', onMoveEnd);
+    return () => {
+      map.off('moveend', onMoveEnd);
+      map.off('zoomend', onMoveEnd);
+      if (timer !== null) window.clearTimeout(timer);
+    };
+  }, [mapLoaded, mapRef]);
 
   // 1) Set up source + layers + handlers.
   useEffect(() => {
@@ -358,15 +413,17 @@ export default function MapMarkersLayer({
     };
   }, [mapLoaded, mapRef]);
 
-  // 2) Push fresh GeoJSON whenever data, filter, visibility, or setup status changes.
+  // 2) Push fresh GeoJSON whenever data, filter, visibility, viewport, or setup status changes.
   useEffect(() => {
     if (!setupReady || !mapRef.current) return;
     const map = mapRef.current.getMap() as MapboxMap;
     const src = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
     if (!src) return;
-    const features = visible ? buildFeatures(terrasen, restaurants, events, layerFilter) : [];
+    const features = visible
+      ? buildFeatures(terrasen, restaurants, events, layerFilter, bounds)
+      : [];
     src.setData({ type: 'FeatureCollection', features });
-  }, [setupReady, mapRef, visible, terrasen, restaurants, events, layerFilter]);
+  }, [setupReady, mapRef, visible, terrasen, restaurants, events, layerFilter, bounds]);
 
   // 3) Update the selected-marker halo via filter swap (no source rewrite).
   useEffect(() => {
