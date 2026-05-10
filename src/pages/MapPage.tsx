@@ -14,6 +14,7 @@ import { useRestaurantSunData } from '../hooks/useRestaurantSunData';
 import { useEventSunData } from '../hooks/useEventSunData';
 import { useDeviceCapabilities } from '../hooks/useDeviceCapabilities';
 import { useMapLoadingState } from '../hooks/useMapLoadingState';
+import { useMapZoom } from '../hooks/useMapZoom';
 import { intensityColor, intensityLabel } from '../utils/intensity';
 import AtmosphericLighting from '../components/AtmosphericLighting';
 import SunTimeline from '../components/SunTimeline';
@@ -166,6 +167,20 @@ export default function MapPage() {
   const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
   const caps = useDeviceCapabilities();
   const loadingState = useMapLoadingState(mapRef, mapLoaded);
+  const zoom = useMapZoom(mapRef, mapLoaded);
+
+  // Mapbox Standard renders 3D buildings progressively from ~zoom 14 and
+  // reaches full detail by ~15.5. Hold markers back until 3D structures are
+  // visible, then keep them on through 14.5 so a tiny zoom-out doesn't
+  // flicker them off (hysteresis).
+  const ZOOM_SHOW = 15.5;
+  const ZOOM_HIDE = 14.5;
+  const [zoomedIn, setZoomedIn] = useState(false);
+  useEffect(() => {
+    if (!mapLoaded) return;
+    if (zoom >= ZOOM_SHOW && !zoomedIn) setZoomedIn(true);
+    else if (zoom < ZOOM_HIDE && zoomedIn) setZoomedIn(false);
+  }, [zoom, zoomedIn, mapLoaded]);
 
   // Three queries fire in parallel from mount — TanStack Query batches them on
   // its own microtask queue, so the dataset stream is fully overlapped with
@@ -187,9 +202,11 @@ export default function MapPage() {
   const restaurants = useDeferredValue(restaurantsCapped);
   const events = useDeferredValue(eventsCapped);
 
-  // Render markers only after the map has reported its first idle. This keeps
-  // hundreds of DOM nodes off the critical path during the heaviest load phase.
-  const showMarkers = loadingState.ready;
+  // Render markers only after (a) the map has reported its first idle, and
+  // (b) the user has zoomed in far enough that Mapbox's 3D buildings are
+  // visible. This keeps the DOM empty during pan/scan navigation and only
+  // pays the marker-render cost once the user is examining a specific area.
+  const showMarkers = loadingState.ready && zoomedIn;
   const sunPosition = useSunPosition();
   const terrasSunData = useTerrasSunData(selectedTerras?.uuid ?? null);
   const restaurantSunData = useRestaurantSunData(selectedRestaurant?.uuid ?? null);
@@ -371,6 +388,30 @@ export default function MapPage() {
         {/* Lightweight loading curtain — visible only until Mapbox fires
             its first `idle` event. Pure CSS, no SVG animations. */}
         <MapSkeleton visible={!mapLoaded || !loadingState.ready} />
+
+        {/* Zoom-in hint — shown when the map is loaded but the user hasn't
+            zoomed in far enough for 3D buildings + markers. */}
+        {loadingState.ready && !zoomedIn && (
+          <div
+            className="absolute bottom-24 md:bottom-8 left-1/2 -translate-x-1/2 z-10 pointer-events-none"
+            style={{
+              padding: '8px 14px',
+              borderRadius: 999,
+              background: 'var(--color-map-overlay)',
+              border: '1px solid var(--color-map-overlay-border)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              boxShadow: 'var(--shadow-soft)',
+              color: 'var(--color-text-2)',
+              fontSize: 12,
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Zoom in to reveal terraces & venues
+          </div>
+        )}
 
         {/* ── Floating panels ─────────────────────────── */}
 
