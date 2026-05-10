@@ -5,6 +5,7 @@ import { searchTerras, uuidFromHydraId } from '../services/terrasService';
 import { searchRestaurants } from '../services/restaurantService';
 import { searchEvents } from '../services/eventService';
 import { useFilters } from '../contexts/FilterContext';
+import { useSelectedTime } from '../contexts/TimeContext';
 import { intensityColor, intensityLabel } from '../utils/intensity';
 import Card from '../components/ui/Card';
 import Pill from '../components/ui/Pill';
@@ -206,6 +207,16 @@ export default function SearchPage() {
   const [kind, setKind] = useState<Kind>('terraces');
   const [page, setPage] = useState(0);
   const { query, setQuery, sunnyOnly, setSunnyOnly, minIntensity, setMinIntensity, cuisine, setCuisine } = useFilters();
+  const { selectedTime } = useSelectedTime();
+
+  // Round to the minute so live ticks (every 30s) don't double-fetch.
+  // Sent to the backend as `?time=` so intensities match the time-aware
+  // map leaderboard rather than always being "now".
+  const timeKey = useMemo(() => {
+    const d = new Date(selectedTime);
+    d.setSeconds(0, 0);
+    return d.toISOString();
+  }, [selectedTime]);
 
   function handleQuery(v: string) { setQuery(v); setPage(0); }
 
@@ -215,8 +226,8 @@ export default function SearchPage() {
   // `refetchOnMount: 'always'` — entering /discover always pulls a fresh
   // backend recompute so intensities match the map's leaderboard.
   const editorial = useQuery({
-    queryKey: ['discover-editorial'],
-    queryFn: () => searchTerras(),
+    queryKey: ['discover-editorial', timeKey],
+    queryFn: () => searchTerras({ time: timeKey }),
     staleTime: 0,
     refetchInterval: 60_000,
     refetchOnMount: 'always',
@@ -234,8 +245,8 @@ export default function SearchPage() {
   // Backend's recomputeIntensities runs on every call, so frequent refetches
   // are how Discover stays in sync with the live intensity values.
   const terrasQuery = useQuery({
-    queryKey: ['discover-terrasen', query, sunnyOnly, minIntensity, page],
-    queryFn: () => searchTerras({ q: query || undefined, sunnyOnly: sunnyOnly || undefined, minIntensity: minIntensity || undefined, limit: PAGE_SIZE, skip: page * PAGE_SIZE }),
+    queryKey: ['discover-terrasen', query, sunnyOnly, minIntensity, page, timeKey],
+    queryFn: () => searchTerras({ q: query || undefined, sunnyOnly: sunnyOnly || undefined, minIntensity: minIntensity || undefined, limit: PAGE_SIZE, skip: page * PAGE_SIZE, time: timeKey }),
     enabled: kind === 'terraces',
     placeholderData: (p) => p,
     staleTime: 0,
@@ -244,8 +255,8 @@ export default function SearchPage() {
     refetchOnWindowFocus: true,
   });
   const restaurantQuery = useQuery({
-    queryKey: ['discover-restaurants', query, cuisine, minIntensity, page],
-    queryFn: () => searchRestaurants({ q: query || undefined, cuisine: cuisine || undefined, minIntensity: minIntensity || undefined, limit: PAGE_SIZE, skip: page * PAGE_SIZE }),
+    queryKey: ['discover-restaurants', query, cuisine, minIntensity, page, timeKey],
+    queryFn: () => searchRestaurants({ q: query || undefined, cuisine: cuisine || undefined, minIntensity: minIntensity || undefined, limit: PAGE_SIZE, skip: page * PAGE_SIZE, time: timeKey }),
     enabled: kind === 'restaurants',
     placeholderData: (p) => p,
     staleTime: 0,

@@ -23,6 +23,7 @@ interface SearchParams {
   south?: number;
   east?: number;
   west?: number;
+  time?: string;
 }
 
 export async function searchTerras(params: SearchParams = {}): Promise<HydraCollection<Terras>> {

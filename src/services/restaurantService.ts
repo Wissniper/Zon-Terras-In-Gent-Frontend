@@ -15,6 +15,7 @@ interface SearchParams {
   south?: number;
   east?: number;
   west?: number;
+  time?: string;
 }
 
 export async function searchRestaurants(params: SearchParams = {}): Promise<HydraCollection<Restaurant>> {
