@@ -358,28 +358,6 @@ export default function MapMarkersLayer({
       src.setData({ type: 'FeatureCollection', features });
     };
 
-    const ensure = () => {
-      if (cancelled) return;
-      try {
-        setupLayers(map);
-        // Force-push the current data here so a `style.load` re-fire (which
-        // wipes runtime sources/layers) recovers without waiting for a React
-        // re-render to retrigger the data effect.
-        pushFeatures();
-        setSetupReady(true);
-      } catch (err) {
-        console.warn('[MapMarkersLayer] setupLayers failed', err);
-      }
-    };
-
-    if (map.isStyleLoaded()) {
-      ensure();
-    } else {
-      map.once('style.load', ensure);
-    }
-    // Reapply on basemap config swaps that wipe runtime layers.
-    map.on('style.load', ensure);
-
     const onPointClick = (e: MapMouseEvent & { features?: any[] }) => {
       const f = e.features?.[0];
       if (!f) return;
@@ -415,22 +393,56 @@ export default function MapMarkersLayer({
     const onEnter = () => { map.getCanvas().style.cursor = 'pointer'; };
     const onLeave = () => { map.getCanvas().style.cursor = ''; };
 
-    map.on('click', LAYER_POINT, onPointClick);
-    map.on('click', LAYER_CLUSTER, onClusterClick);
-    map.on('mouseenter', LAYER_POINT, onEnter);
-    map.on('mouseleave', LAYER_POINT, onLeave);
-    map.on('mouseenter', LAYER_CLUSTER, onEnter);
-    map.on('mouseleave', LAYER_CLUSTER, onLeave);
-
-    return () => {
-      cancelled = true;
-      map.off('style.load', ensure);
+    let handlersBound = false;
+    const bindHandlers = () => {
+      if (handlersBound) return;
+      handlersBound = true;
+      map.on('click', LAYER_POINT, onPointClick);
+      map.on('click', LAYER_CLUSTER, onClusterClick);
+      map.on('mouseenter', LAYER_POINT, onEnter);
+      map.on('mouseleave', LAYER_POINT, onLeave);
+      map.on('mouseenter', LAYER_CLUSTER, onEnter);
+      map.on('mouseleave', LAYER_CLUSTER, onLeave);
+    };
+    const unbindHandlers = () => {
+      if (!handlersBound) return;
+      handlersBound = false;
       map.off('click', LAYER_POINT, onPointClick);
       map.off('click', LAYER_CLUSTER, onClusterClick);
       map.off('mouseenter', LAYER_POINT, onEnter);
       map.off('mouseleave', LAYER_POINT, onLeave);
       map.off('mouseenter', LAYER_CLUSTER, onEnter);
       map.off('mouseleave', LAYER_CLUSTER, onLeave);
+    };
+
+    const ensure = () => {
+      if (cancelled) return;
+      try {
+        setupLayers(map);
+        // Rebind handlers AFTER layers exist. On a `style.load` re-fire, we
+        // unbind first so old handlers attached to the wiped layer instances
+        // don't shadow the fresh attachments.
+        unbindHandlers();
+        bindHandlers();
+        pushFeatures();
+        setSetupReady(true);
+      } catch (err) {
+        console.warn('[MapMarkersLayer] setupLayers failed', err);
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      ensure();
+    } else {
+      map.once('style.load', ensure);
+    }
+    // Reapply on basemap config swaps that wipe runtime layers.
+    map.on('style.load', ensure);
+
+    return () => {
+      cancelled = true;
+      map.off('style.load', ensure);
+      unbindHandlers();
       try { teardownLayers(map); } catch { /* style swap already wiped them */ }
       setSetupReady(false);
     };
