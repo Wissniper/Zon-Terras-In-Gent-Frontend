@@ -209,11 +209,14 @@ export default function SearchPage() {
 
   function handleQuery(v: string) { setQuery(v); setPage(0); }
 
-  // Top-3 sunny terraces for the editorial sections (always loaded)
+  // Top-3 sunny terraces for the editorial sections (always loaded).
+  // Don't pass sunnyOnly (backend: intensity > 50) — on cloudy days that empties
+  // the hero. Backend sorts intensity:-1 so featured = [0] is always sunniest.
   const editorial = useQuery({
     queryKey: ['discover-editorial'],
-    queryFn: () => searchTerras({ sunnyOnly: true }),
-    staleTime: 60_000,
+    queryFn: () => searchTerras(),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
   const featured = useMemo(() => editorial.data?.['hydra:member']?.[0], [editorial.data]);
   const partial = useMemo(
