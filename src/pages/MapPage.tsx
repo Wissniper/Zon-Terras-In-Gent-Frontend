@@ -94,6 +94,34 @@ export default function MapPage() {
   const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
   const [mapError, setMapError] = useState<string | null>(null);
   const caps = useDeviceCapabilities();
+
+  // Mapbox throws `UBO size … exceeds device limit 0` inside its render
+  // loop on Safari builds with broken WebGL2 UBO reporting. That error is
+  // raised on a requestAnimationFrame callback, so it never reaches React's
+  // <Map onError>. Catch it via the global error event instead.
+  useEffect(() => {
+    const onWindowError = (event: ErrorEvent) => {
+      const msg = event.message || (event.error as Error | undefined)?.message || '';
+      if (/UBO size|uniform.+limit|device limit 0|WebGL.*lost/i.test(msg)) {
+        setMapError(msg);
+      }
+    };
+    window.addEventListener('error', onWindowError);
+    return () => window.removeEventListener('error', onWindowError);
+  }, []);
+
+  // If the map hasn't fired `load` after 6 s, something is wrong (typically
+  // the UBO error swallowed inside Mapbox's render loop). Surface a generic
+  // "didn't initialise" message so the page never hangs at the skeleton.
+  useEffect(() => {
+    if (mapLoaded || mapError) return;
+    const t = window.setTimeout(() => {
+      setMapError(
+        "Map didn't initialise. Your browser's WebGL 2 stack may not be compatible with Mapbox v3.",
+      );
+    }, 6000);
+    return () => window.clearTimeout(t);
+  }, [mapLoaded, mapError]);
   const loadingState = useMapLoadingState(mapRef, mapLoaded);
 
   // Three queries fire in parallel from mount — TanStack Query schedules them
