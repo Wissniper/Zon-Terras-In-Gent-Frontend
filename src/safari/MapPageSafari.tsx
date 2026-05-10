@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import mapboxgl from 'mapbox-gl-safari';
-import 'mapbox-gl-safari/dist/mapbox-gl.css';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { useLocation } from 'react-router-dom';
 
 import { useTerrasData } from '../hooks/useTerrasData';
@@ -19,29 +19,22 @@ import type { Terras, Restaurant, Event } from '../types';
 /**
  * Safari-only fallback map.
  *
- * Why this exists:
- *   The default `MapPage` uses `mapbox-gl@3` + `react-map-gl@8` + Mapbox's
- *   photorealistic Standard style. v3 needs WebGL2 with full Uniform Buffer
- *   Object support, and several Safari builds (especially on macOS with
- *   limited GPU memory or Lockdown Mode) hand Mapbox a degraded WebGL2
- *   context that reports `MAX_UNIFORM_BLOCK_SIZE = 0`, producing the
- *   "UBO size 16384 exceeds device limit 0" error and a blank canvas.
+ * Why Leaflet, not Mapbox?
+ *   The default `MapPage` uses `mapbox-gl@3` which needs WebGL2 with UBO
+ *   support. We tried `mapbox-gl@2` (WebGL1) too — also fails on the
+ *   reporter's Safari with "WebGL: context lost" during `_setupPainter`,
+ *   meaning Safari is unable to keep *any* WebGL context alive on this
+ *   machine. Leaflet renders tiles via plain Canvas2D / DOM, no WebGL,
+ *   no GPU contexts to lose.
  *
- *   This component reaches for `mapbox-gl@2` (aliased as `mapbox-gl-safari`)
- *   which uses WebGL1 and renders fine on every Safari since 14. We trade
- *   the 3D photoreal lighting for a clean, fully-functional 2D streets map
- *   with the same DOM markers, panels, and timeline behaviour.
+ *   Tile source: OpenStreetMap (no token, zero infrastructure required).
+ *   Markers: plain DivIcons, same colour-coded dots as the WebGL path.
+ *   Floating panels (LiveStatePanel, SunniestNowPanel, SunTimeline) are
+ *   reused from the desktop bundle — they don't depend on the map engine.
  */
 
-const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string;
-
-const INITIAL_VIEW = {
-  longitude: 3.7174,
-  latitude: 51.0543,
-  zoom: 14,
-  bearing: -17,
-  pitch: 50,
-};
+const INITIAL = { lat: 51.0543, lng: 3.7174, zoom: 14 };
+const MAX_BOUNDS = L.latLngBounds([50.99, 3.65], [51.12, 3.82]);
 
 const COLORS = {
   terras: '#E5870A',
@@ -50,17 +43,27 @@ const COLORS = {
 };
 
 type LayerFilter = 'terras' | 'restaurants' | 'events' | 'all';
+type Category = 'terras' | 'restaurant' | 'event';
 
-function makeMarkerEl(color: string): HTMLDivElement {
-  const wrap = document.createElement('div');
-  wrap.style.cssText =
-    'width:18px;height:18px;border-radius:50%;border:2px solid #fff;' +
-    `background:${color};box-shadow:0 2px 4px rgba(0,0,0,0.32);cursor:pointer;` +
-    'transition:transform 0.15s ease;';
-  wrap.onmouseenter = () => { wrap.style.transform = 'scale(1.2)'; };
-  wrap.onmouseleave = () => { wrap.style.transform = 'scale(1)'; };
-  return wrap;
+function createPinIcon(color: string): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    html: `<div style="
+      width:18px;height:18px;border-radius:50%;
+      border:2px solid #fff;background:${color};
+      box-shadow:0 2px 4px rgba(0,0,0,0.32);
+      transition:transform 0.15s ease;
+    "></div>`,
+  });
 }
+
+const ICONS = {
+  terras: createPinIcon(COLORS.terras),
+  restaurant: createPinIcon(COLORS.restaurant),
+  event: createPinIcon(COLORS.event),
+};
 
 interface PanelProps {
   terras: Terras | null;
@@ -86,15 +89,16 @@ function SelectedPanel({ terras, restaurant, event, terrasIntensity, restaurantI
       : event
         ? `/events/${event.uuid}`
         : '#';
+  const tone = terras ? 'gold' : restaurant ? 'sky' : 'terra';
 
   return (
-    <div className="absolute left-5 bottom-5 z-30 w-[360px] max-w-[90vw] rounded-2xl"
+    <div className="absolute left-5 bottom-5 z-[1000] w-[360px] max-w-[90vw] rounded-2xl"
       style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-float)' }}
     >
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="min-w-0">
-            <Pill tone="gold" className="mb-2">
+            <Pill tone={tone} className="mb-2">
               {terras ? 'Terrace' : restaurant ? 'Restaurant' : 'Event'}
             </Pill>
             <h3 className="font-display font-semibold text-text-1" style={{ fontSize: '1.4rem' }}>{title}</h3>
@@ -131,10 +135,9 @@ function SelectedPanel({ terras, restaurant, event, terrasIntensity, restaurantI
 
 export default function MapPageSafari() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerLayerRef = useRef<L.LayerGroup | null>(null);
 
-  const [mapLoaded, setMapLoaded] = useState(false);
   const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
   const [selectedTerras, setSelectedTerras] = useState<Terras | null>(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
@@ -149,61 +152,68 @@ export default function MapPageSafari() {
   const eventSunData = useEventSunData(selectedEvent?.uuid ?? null);
   const location = useLocation();
 
-  // Initialise the map once.
+  // Initialise the Leaflet map once.
   useEffect(() => {
     if (!containerRef.current) return;
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      accessToken: MAPBOX_TOKEN,
-      style: 'mapbox://styles/mapbox/streets-v12',
-      center: [INITIAL_VIEW.longitude, INITIAL_VIEW.latitude],
-      zoom: INITIAL_VIEW.zoom,
-      bearing: INITIAL_VIEW.bearing,
-      pitch: INITIAL_VIEW.pitch,
-      maxBounds: [[3.65, 50.99], [3.82, 51.12]],
+    const map = L.map(containerRef.current, {
+      center: [INITIAL.lat, INITIAL.lng],
+      zoom: INITIAL.zoom,
       minZoom: 12,
+      maxBounds: MAX_BOUNDS,
+      maxBoundsViscosity: 0.85,
+      preferCanvas: true,        // tile rendering on Canvas2D, no SVG cost
+      zoomControl: false,
     });
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 19,
+    }).addTo(map);
+    L.control.zoom({ position: 'bottomright' }).addTo(map);
+
     mapRef.current = map;
-    map.on('load', () => setMapLoaded(true));
+    markerLayerRef.current = L.layerGroup().addTo(map);
+
     return () => {
-      markersRef.current.forEach((m) => m.remove());
-      markersRef.current = [];
+      markerLayerRef.current?.clearLayers();
+      markerLayerRef.current = null;
       map.remove();
       mapRef.current = null;
     };
   }, []);
 
-  // Render markers via plain DOM (mapbox-gl v2's Marker class is WebGL-free).
+  // Re-render markers on data / filter change.
   const handlersRef = useRef({ setSelectedTerras, setSelectedRestaurant, setSelectedEvent });
   useEffect(() => {
     handlersRef.current = { setSelectedTerras, setSelectedRestaurant, setSelectedEvent };
   });
 
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current) return;
     const map = mapRef.current;
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+    const layer = markerLayerRef.current;
+    if (!map || !layer) return;
+    layer.clearLayers();
 
-    const add = (
-      lng: number, lat: number, color: string,
-      onClick: () => void,
+    const addMarker = (
+      lng: number, lat: number, category: Category,
+      onPick: () => void,
     ) => {
-      const el = makeMarkerEl(color);
-      el.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
-      const m = new mapboxgl.Marker({ element: el }).setLngLat([lng, lat]).addTo(map);
-      markersRef.current.push(m);
+      const m = L.marker([lat, lng], { icon: ICONS[category] })
+        .on('click', () => {
+          onPick();
+          map.flyTo([lat, lng], Math.max(map.getZoom(), 17), { duration: 0.9 });
+        });
+      m.addTo(layer);
     };
 
     if (layerFilter === 'terras' || layerFilter === 'all') {
       for (const t of terrasen) {
         const c = t.location?.coordinates;
         if (!c) continue;
-        add(c[0], c[1], COLORS.terras, () => {
+        addMarker(c[0], c[1], 'terras', () => {
           handlersRef.current.setSelectedTerras(t);
           handlersRef.current.setSelectedRestaurant(null);
           handlersRef.current.setSelectedEvent(null);
-          mapRef.current?.flyTo({ center: [c[0], c[1]], zoom: Math.max(map.getZoom(), 17) });
         });
       }
     }
@@ -211,11 +221,10 @@ export default function MapPageSafari() {
       for (const r of restaurants) {
         const c = r.location?.coordinates;
         if (!c) continue;
-        add(c[0], c[1], COLORS.restaurant, () => {
+        addMarker(c[0], c[1], 'restaurant', () => {
           handlersRef.current.setSelectedRestaurant(r);
           handlersRef.current.setSelectedTerras(null);
           handlersRef.current.setSelectedEvent(null);
-          mapRef.current?.flyTo({ center: [c[0], c[1]], zoom: Math.max(map.getZoom(), 17) });
         });
       }
     }
@@ -223,37 +232,35 @@ export default function MapPageSafari() {
       for (const ev of events) {
         const c = ev.location?.coordinates;
         if (!c) continue;
-        add(c[0], c[1], COLORS.event, () => {
+        addMarker(c[0], c[1], 'event', () => {
           handlersRef.current.setSelectedEvent(ev);
           handlersRef.current.setSelectedTerras(null);
           handlersRef.current.setSelectedRestaurant(null);
-          mapRef.current?.flyTo({ center: [c[0], c[1]], zoom: Math.max(map.getZoom(), 17) });
         });
       }
     }
-  }, [mapLoaded, terrasen, restaurants, events, layerFilter]);
+  }, [terrasen, restaurants, events, layerFilter]);
 
   // Deep-link from a detail page → focus that entity.
   useEffect(() => {
-    if (!mapLoaded) return;
+    const map = mapRef.current;
+    if (!map) return;
     const state = location.state as { focusId?: string; type?: string } | null;
     if (!state?.focusId) return;
     const id = state.focusId;
     let coords: [number, number] | undefined;
     if (state.type === 'terras') {
       const t = terrasen.find((x) => x.uuid === id);
-      if (t) { setSelectedTerras(t); coords = [t.location.coordinates[0], t.location.coordinates[1]]; }
+      if (t) { setSelectedTerras(t); coords = [t.location.coordinates[1], t.location.coordinates[0]]; }
     } else if (state.type === 'restaurant') {
       const r = restaurants.find((x) => x.uuid === id);
-      if (r) { setSelectedRestaurant(r); coords = [r.location.coordinates[0], r.location.coordinates[1]]; }
+      if (r) { setSelectedRestaurant(r); coords = [r.location.coordinates[1], r.location.coordinates[0]]; }
     } else if (state.type === 'event') {
       const ev = events.find((x) => x.uuid === id);
-      if (ev) { setSelectedEvent(ev); coords = [ev.location.coordinates[0], ev.location.coordinates[1]]; }
+      if (ev) { setSelectedEvent(ev); coords = [ev.location.coordinates[1], ev.location.coordinates[0]]; }
     }
-    if (coords && mapRef.current) {
-      mapRef.current.flyTo({ center: coords, zoom: 18, duration: 1200 });
-    }
-  }, [mapLoaded, location.state, terrasen, restaurants, events]);
+    if (coords) map.flyTo(coords, 18, { duration: 1.2 });
+  }, [location.state, terrasen, restaurants, events]);
 
   const focusTerras = (uuid: string) => {
     const t = terrasen.find((x) => x.uuid === uuid);
@@ -262,17 +269,11 @@ export default function MapPageSafari() {
     setSelectedRestaurant(null);
     setSelectedEvent(null);
     const [lng, lat] = t.location.coordinates;
-    mapRef.current.flyTo({ center: [lng, lat], zoom: Math.max(mapRef.current.getZoom(), 17) });
+    mapRef.current.flyTo([lat, lng], Math.max(mapRef.current.getZoom(), 17), { duration: 0.9 });
   };
 
   const recenter = () => {
-    mapRef.current?.flyTo({
-      center: [INITIAL_VIEW.longitude, INITIAL_VIEW.latitude],
-      zoom: INITIAL_VIEW.zoom,
-      bearing: INITIAL_VIEW.bearing,
-      pitch: INITIAL_VIEW.pitch,
-      duration: 1000,
-    });
+    mapRef.current?.flyTo([INITIAL.lat, INITIAL.lng], INITIAL.zoom, { duration: 1 });
   };
 
   const layerToggle = useMemo(() => (
@@ -305,24 +306,24 @@ export default function MapPageSafari() {
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
       <div className="flex-1 relative overflow-hidden">
-        <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+        <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: 'var(--color-surface-2)' }} />
 
-        <div className="hidden md:block absolute top-5 left-5 z-10 max-w-[260px]">
+        <div className="hidden md:block absolute top-5 left-5 z-[1000] max-w-[260px]">
           <LiveStatePanel />
         </div>
 
-        <div className="hidden md:flex absolute top-5 right-5 z-10 flex-col items-end gap-3">
+        <div className="hidden md:flex absolute top-5 right-5 z-[1000] flex-col items-end gap-3">
           {layerToggle}
           <SunniestNowPanel onPick={focusTerras} />
         </div>
 
-        <div className="md:hidden absolute top-3 left-1/2 -translate-x-1/2 z-10">
+        <div className="md:hidden absolute top-3 left-1/2 -translate-x-1/2 z-[1000]">
           {layerToggle}
         </div>
 
         <button
           onClick={recenter}
-          className="absolute bottom-5 left-5 z-10 rounded-full"
+          className="absolute bottom-5 left-5 z-[1000] rounded-full"
           style={{
             width: 44, height: 44,
             background: 'var(--color-map-overlay)',
@@ -342,7 +343,7 @@ export default function MapPageSafari() {
         </button>
 
         <button
-          className="md:hidden absolute bottom-5 right-5 z-20 w-14 h-14 rounded-full flex items-center justify-center"
+          className="md:hidden absolute bottom-5 right-5 z-[1001] w-14 h-14 rounded-full flex items-center justify-center"
           style={{
             background: 'linear-gradient(135deg, #FFD075, #ED8A1F)',
             color: 'var(--color-on-primary)',
@@ -358,13 +359,13 @@ export default function MapPageSafari() {
         </button>
 
         {timelineOpen && (
-          <div className="md:hidden fixed inset-0 z-40"
+          <div className="md:hidden fixed inset-0 z-[1004]"
             style={{ background: 'rgba(26,22,17,0.55)', backdropFilter: 'blur(3px)' }}
             onClick={() => setTimelineOpen(false)}
           />
         )}
         <div
-          className={`md:hidden fixed inset-y-0 right-0 z-50 w-32 flex flex-col transition-transform duration-300 ease-in-out ${
+          className={`md:hidden fixed inset-y-0 right-0 z-[1005] w-32 flex flex-col transition-transform duration-300 ease-in-out ${
             timelineOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
           style={{
