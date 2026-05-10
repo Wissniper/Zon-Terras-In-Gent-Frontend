@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { useLocation } from 'react-router-dom';
 
 import { useTerrasData } from '../hooks/useTerrasData';
@@ -136,7 +139,7 @@ function SelectedPanel({ terras, restaurant, event, terrasIntensity, restaurantI
 export default function MapPageSafari() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const markerLayerRef = useRef<L.LayerGroup | null>(null);
+  const markerLayerRef = useRef<L.MarkerClusterGroup | null>(null);
 
   const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
   const [selectedTerras, setSelectedTerras] = useState<Terras | null>(null);
@@ -172,7 +175,34 @@ export default function MapPageSafari() {
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     mapRef.current = map;
-    markerLayerRef.current = L.layerGroup().addTo(map);
+    // Cluster behaviour matches the desktop symbol layer: stop clustering at
+    // zoom 16 so individual markers split apart at building zoom; spiderfy
+    // co-located markers; build a colour-graded cluster bubble that mirrors
+    // the desktop palette (amber → ochre → burnt).
+    markerLayerRef.current = L.markerClusterGroup({
+      disableClusteringAtZoom: 16,
+      spiderfyOnMaxZoom: false,
+      chunkedLoading: true,
+      maxClusterRadius: 42,
+      iconCreateFunction: (cluster) => {
+        const n = cluster.getChildCount();
+        const bg = n >= 25 ? '#B45F0A' : n >= 5 ? '#ED8A1F' : '#FFB554';
+        const size = n >= 25 ? 48 : n >= 5 ? 40 : 32;
+        return L.divIcon({
+          className: '',
+          iconSize: [size, size],
+          iconAnchor: [size / 2, size / 2],
+          html: `<div style="
+            width:${size}px;height:${size}px;border-radius:50%;
+            border:2px solid #fff;background:${bg};
+            box-shadow:0 2px 6px rgba(0,0,0,0.32);
+            display:flex;align-items:center;justify-content:center;
+            color:#fff;font-weight:600;font-size:12px;
+            font-family:'DM Sans',system-ui,sans-serif;
+          ">${n}</div>`,
+        });
+      },
+    }).addTo(map);
 
     return () => {
       markerLayerRef.current?.clearLayers();
