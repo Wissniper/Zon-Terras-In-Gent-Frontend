@@ -212,11 +212,15 @@ export default function SearchPage() {
   // Top-3 sunny terraces for the editorial sections (always loaded).
   // Don't pass sunnyOnly (backend: intensity > 50) — on cloudy days that empties
   // the hero. Backend sorts intensity:-1 so featured = [0] is always sunniest.
+  // `refetchOnMount: 'always'` — entering /discover always pulls a fresh
+  // backend recompute so intensities match the map's leaderboard.
   const editorial = useQuery({
     queryKey: ['discover-editorial'],
     queryFn: () => searchTerras(),
-    staleTime: 30_000,
+    staleTime: 0,
     refetchInterval: 60_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
   const featured = useMemo(() => editorial.data?.['hydra:member']?.[0], [editorial.data]);
   const partial = useMemo(
@@ -226,23 +230,38 @@ export default function SearchPage() {
     [editorial.data],
   );
 
+  // Each list query: fresh on mount + every 60s, matching the map leaderboard.
+  // Backend's recomputeIntensities runs on every call, so frequent refetches
+  // are how Discover stays in sync with the live intensity values.
   const terrasQuery = useQuery({
     queryKey: ['discover-terrasen', query, sunnyOnly, minIntensity, page],
     queryFn: () => searchTerras({ q: query || undefined, sunnyOnly: sunnyOnly || undefined, minIntensity: minIntensity || undefined, limit: PAGE_SIZE, skip: page * PAGE_SIZE }),
     enabled: kind === 'terraces',
     placeholderData: (p) => p,
+    staleTime: 0,
+    refetchInterval: 60_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
   const restaurantQuery = useQuery({
     queryKey: ['discover-restaurants', query, cuisine, minIntensity, page],
     queryFn: () => searchRestaurants({ q: query || undefined, cuisine: cuisine || undefined, minIntensity: minIntensity || undefined, limit: PAGE_SIZE, skip: page * PAGE_SIZE }),
     enabled: kind === 'restaurants',
     placeholderData: (p) => p,
+    staleTime: 0,
+    refetchInterval: 60_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
   const eventQuery = useQuery({
     queryKey: ['discover-events', query, page],
     queryFn: () => searchEvents({ q: query || undefined, limit: PAGE_SIZE, skip: page * PAGE_SIZE }),
     enabled: kind === 'events',
     placeholderData: (p) => p,
+    staleTime: 0,
+    refetchInterval: 60_000,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
   });
 
   const activeData = kind === 'terraces' ? terrasQuery.data : kind === 'restaurants' ? restaurantQuery.data : eventQuery.data;
