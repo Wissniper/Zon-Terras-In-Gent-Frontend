@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { MapRef } from 'react-map-gl/mapbox';
 import type { Map as MapboxMap, GeoJSONSource, MapMouseEvent } from 'mapbox-gl';
 import type { Terras, Restaurant, Event } from '../../types';
@@ -39,44 +39,41 @@ const ICON_IDS: Record<Category, string> = {
   event: 'icon-event',
 };
 
-function makeDotImage(color: string, sizeLogical = 14, pixelRatio = 2) {
+function addDotIcon(map: MapboxMap, id: string, color: string, sizeLogical = 14) {
+  if (map.hasImage(id)) return true;
+  const pixelRatio = 2;
   const size = sizeLogical * pixelRatio;
   const pad = pixelRatio * 2;
   const total = size + pad * 2;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = total;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return null;
+  if (!ctx) return false;
 
-  // soft drop-shadow baked into the bitmap (one offscreen, not per element)
+  // soft drop-shadow baked into the bitmap
   ctx.fillStyle = 'rgba(0,0,0,0.32)';
   ctx.beginPath();
   ctx.arc(total / 2, total / 2 + pixelRatio, size / 2, 0, Math.PI * 2);
   ctx.fill();
-
   // white ring
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   ctx.arc(total / 2, total / 2, size / 2, 0, Math.PI * 2);
   ctx.fill();
-
   // colored core
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.arc(total / 2, total / 2, size / 2 - pixelRatio * 1.5, 0, Math.PI * 2);
   ctx.fill();
 
-  const img = ctx.getImageData(0, 0, total, total);
-  return { width: total, height: total, data: img.data };
-}
-
-function ensureIcons(map: MapboxMap) {
-  (Object.keys(ICON_IDS) as Category[]).forEach((cat) => {
-    const id = ICON_IDS[cat];
-    if (map.hasImage(id)) return;
-    const img = makeDotImage(COLORS[cat]);
-    if (img) map.addImage(id, img as any, { pixelRatio: 2 });
-  });
+  const imageData = ctx.getImageData(0, 0, total, total);
+  try {
+    map.addImage(id, imageData, { pixelRatio });
+    return map.hasImage(id);
+  } catch (err) {
+    console.warn('[MapMarkersLayer] addImage failed', id, err);
+    return false;
+  }
 }
 
 interface Feature {
@@ -129,7 +126,9 @@ function buildFeatures(
 }
 
 function setupLayers(map: MapboxMap) {
-  ensureIcons(map);
+  for (const cat of Object.keys(ICON_IDS) as Category[]) {
+    addDotIcon(map, ICON_IDS[cat], COLORS[cat]);
+  }
 
   if (!map.getSource(SOURCE_ID)) {
     map.addSource(SOURCE_ID, {
@@ -173,12 +172,13 @@ function setupLayers(map: MapboxMap) {
       type: 'symbol',
       source: SOURCE_ID,
       filter: ['has', 'point_count'],
+      // text-font omitted on purpose: Mapbox Standard's glyph set doesn't
+      // include DIN/Open Sans, so we let the style pick its default.
       layout: {
         'text-field': ['get', 'point_count_abbreviated'],
         'text-size': 12,
         'text-allow-overlap': true,
         'text-ignore-placement': true,
-        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
       },
       paint: {
         'text-color': '#ffffff',
@@ -235,7 +235,6 @@ function setupLayers(map: MapboxMap) {
         'text-anchor': 'top',
         'text-optional': true,
         'text-allow-overlap': false,
-        'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
       },
       paint: {
         'text-color': '#2A1F0F',
@@ -261,14 +260,10 @@ function teardownLayers(map: MapboxMap) {
 /**
  * Renders all map markers as a clustered Mapbox **symbol layer** — every
  * point + cluster is drawn on the map's WebGL canvas in a single GPU pass.
- * Replaces hundreds of DOM-based <Marker> nodes (each with their own
- * compositor layers, drop-shadow filters, and backdrop-blurs).
  *
- * Behaviour matches the previous DOM markers:
- *   • Click on a cluster → eases to the cluster's expansion zoom.
- *   • Click on an individual point → invokes the matching select-handler.
- *   • Hover changes the cursor.
- *   • Labels fade in around zoom 17.
+ * Layer setup is gated on `style.load`. Once setup completes we flip the
+ * `setupReady` state, which retriggers the data effect — covers the case
+ * where the React data update lands before the style is fully parsed.
  */
 export default function MapMarkersLayer({
   mapRef, mapLoaded, visible,
@@ -276,31 +271,36 @@ export default function MapMarkersLayer({
   selectedUuid,
   onSelectTerras, onSelectRestaurant, onSelectEvent,
 }: Props) {
-  // Stable handler bag so click listeners can reach the latest props/data.
   const propsRef = useRef({ terrasen, restaurants, events, onSelectTerras, onSelectRestaurant, onSelectEvent });
   useEffect(() => {
     propsRef.current = { terrasen, restaurants, events, onSelectTerras, onSelectRestaurant, onSelectEvent };
   });
 
-  const setupDoneRef = useRef(false);
+  const [setupReady, setSetupReady] = useState(false);
 
-  // 1) Set up sources, layers, icons, and click/hover handlers.
+  // 1) Set up source + layers + handlers.
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return;
     const map = mapRef.current.getMap() as MapboxMap;
 
+    let cancelled = false;
     const ensure = () => {
+      if (cancelled) return;
       try {
         setupLayers(map);
-        setupDoneRef.current = true;
+        setSetupReady(true);
       } catch (err) {
-        // setStyle still in flight or layer conflict; retry on next style.load.
-        console.warn('[MapMarkersLayer] setup failed', err);
+        console.warn('[MapMarkersLayer] setupLayers failed', err);
       }
     };
 
-    if (map.isStyleLoaded()) ensure();
-    else map.once('style.load', ensure);
+    if (map.isStyleLoaded()) {
+      ensure();
+    } else {
+      map.once('style.load', ensure);
+    }
+    // Reapply on basemap config swaps that wipe runtime layers.
+    map.on('style.load', ensure);
 
     const onPointClick = (e: MapMouseEvent & { features?: any[] }) => {
       const f = e.features?.[0];
@@ -345,30 +345,32 @@ export default function MapMarkersLayer({
     map.on('mouseleave', LAYER_CLUSTER, onLeave);
 
     return () => {
+      cancelled = true;
+      map.off('style.load', ensure);
       map.off('click', LAYER_POINT, onPointClick);
       map.off('click', LAYER_CLUSTER, onClusterClick);
       map.off('mouseenter', LAYER_POINT, onEnter);
       map.off('mouseleave', LAYER_POINT, onLeave);
       map.off('mouseenter', LAYER_CLUSTER, onEnter);
       map.off('mouseleave', LAYER_CLUSTER, onLeave);
-      try { teardownLayers(map); } catch { /* style already swapped */ }
-      setupDoneRef.current = false;
+      try { teardownLayers(map); } catch { /* style swap already wiped them */ }
+      setSetupReady(false);
     };
   }, [mapLoaded, mapRef]);
 
-  // 2) Push fresh GeoJSON whenever data or filter changes.
+  // 2) Push fresh GeoJSON whenever data, filter, visibility, or setup status changes.
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !setupDoneRef.current) return;
+    if (!setupReady || !mapRef.current) return;
     const map = mapRef.current.getMap() as MapboxMap;
     const src = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
     if (!src) return;
     const features = visible ? buildFeatures(terrasen, restaurants, events, layerFilter) : [];
     src.setData({ type: 'FeatureCollection', features });
-  }, [mapLoaded, mapRef, visible, terrasen, restaurants, events, layerFilter]);
+  }, [setupReady, mapRef, visible, terrasen, restaurants, events, layerFilter]);
 
-  // 3) Update the selected-marker halo via a layer filter (no re-source).
+  // 3) Update the selected-marker halo via filter swap (no source rewrite).
   useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !setupDoneRef.current) return;
+    if (!setupReady || !mapRef.current) return;
     const map = mapRef.current.getMap() as MapboxMap;
     if (!map.getLayer(LAYER_POINT_HALO)) return;
     map.setFilter(LAYER_POINT_HALO, [
@@ -376,7 +378,7 @@ export default function MapMarkersLayer({
       ['!', ['has', 'point_count']],
       ['==', ['get', 'uuid'], selectedUuid ?? '__none__'],
     ]);
-  }, [mapLoaded, mapRef, selectedUuid]);
+  }, [setupReady, mapRef, selectedUuid]);
 
   return null;
 }
