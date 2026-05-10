@@ -225,8 +225,6 @@ export default function MapPage() {
           />
 
           <MapMarkersLayer
-            mapRef={mapRef}
-            mapLoaded={mapLoaded}
             visible={showMarkers}
             terrasen={terrasen}
             restaurants={restaurants}
