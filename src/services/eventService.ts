@@ -9,6 +9,10 @@ interface SearchParams {
   date?: string;
   limit?: number;
   skip?: number;
+  north?: number;
+  south?: number;
+  east?: number;
+  west?: number;
 }
 
 export async function searchEvents(params: SearchParams = {}): Promise<HydraCollection<Event>> {

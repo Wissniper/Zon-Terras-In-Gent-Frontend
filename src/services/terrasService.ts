@@ -19,6 +19,10 @@ interface SearchParams {
   maxIntensity?: number;
   limit?: number;
   skip?: number;
+  north?: number;
+  south?: number;
+  east?: number;
+  west?: number;
 }
 
 export async function searchTerras(params: SearchParams = {}): Promise<HydraCollection<Terras>> {

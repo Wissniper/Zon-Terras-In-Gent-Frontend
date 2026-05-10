@@ -11,6 +11,10 @@ interface SearchParams {
   maxIntensity?: number;
   limit?: number;
   skip?: number;
+  north?: number;
+  south?: number;
+  east?: number;
+  west?: number;
 }
 
 export async function searchRestaurants(params: SearchParams = {}): Promise<HydraCollection<Restaurant>> {
