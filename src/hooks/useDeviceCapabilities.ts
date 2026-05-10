@@ -12,22 +12,22 @@ export interface DeviceCapabilities {
   antialias: boolean;
   enableTerrain: boolean;
   enableShadows: boolean;
+  webgl2: boolean;
 }
 
-function probeWebGL(): { maxTextureSize: number; renderer: string } | null {
+function probeWebGL(): { maxTextureSize: number; renderer: string; webgl2: boolean } | null {
   if (typeof document === 'undefined') return null;
   try {
     const canvas = document.createElement('canvas');
-    const gl =
-      (canvas.getContext('webgl2') as WebGLRenderingContext | null) ??
-      (canvas.getContext('webgl') as WebGLRenderingContext | null);
+    const gl2 = canvas.getContext('webgl2') as WebGL2RenderingContext | null;
+    const gl = (gl2 ?? canvas.getContext('webgl')) as WebGLRenderingContext | null;
     if (!gl) return null;
     const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
     const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
     const renderer = debugInfo
       ? (gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) as string)
       : '';
-    return { maxTextureSize, renderer };
+    return { maxTextureSize, renderer, webgl2: gl2 != null };
   } catch {
     return null;
   }
@@ -64,6 +64,8 @@ export function detectDeviceCapabilities(): DeviceCapabilities {
     typeof window !== 'undefined' &&
     window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
 
+  const webgl2 = gl?.webgl2 ?? false;
+
   return {
     isMobile,
     isLowEnd,
@@ -73,9 +75,10 @@ export function detectDeviceCapabilities(): DeviceCapabilities {
     prefersReducedMotion,
     maxParallelImageRequests: isLowEnd ? 8 : 16,
     fadeDurationMs: prefersReducedMotion ? 0 : isLowEnd ? 200 : 500,
-    antialias: !isLowEnd,
+    antialias: !isLowEnd && webgl2,
     enableTerrain: !isLowEnd,
     enableShadows: !isLowEnd,
+    webgl2,
   };
 }
 

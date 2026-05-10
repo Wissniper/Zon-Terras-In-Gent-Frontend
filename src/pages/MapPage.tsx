@@ -217,7 +217,9 @@ export default function MapPage() {
           initialViewState={INITIAL_VIEW}
           style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
           mapLib={mapboxgl}
-          mapStyle="mapbox://styles/mapbox/standard"
+          // Standard style requires WebGL2; fall back to streets-v12 for
+          // browsers that only have WebGL1 (older Safari, locked-down envs).
+          mapStyle={caps.webgl2 ? 'mapbox://styles/mapbox/standard' : 'mapbox://styles/mapbox/streets-v12'}
           antialias={caps.antialias}
           fadeDuration={caps.fadeDurationMs}
           maxPitch={caps.isLowEnd ? 60 : 75}
@@ -225,8 +227,14 @@ export default function MapPage() {
           preserveDrawingBuffer={false}
           onLoad={() => {
             const map = mapRef.current?.getMap() as MapboxMap;
-            map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+            // Standard-style only — guard so streets-v12 fallback doesn't throw.
+            try {
+              map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
+            } catch { /* style without basemap config */ }
             setMapLoaded(true);
+          }}
+          onError={(e) => {
+            console.error('[Mapbox] map error', e?.error || e);
           }}
           maxBounds={[3.65, 50.99, 3.82, 51.12]}
           minZoom={12}
