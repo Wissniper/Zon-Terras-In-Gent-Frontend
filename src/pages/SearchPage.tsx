@@ -47,14 +47,21 @@ function FeaturedHero({ item }: { item: Terras & { '@id': string } }) {
                   />
                 );
               })}
-              <circle cx="90" cy="90" r="56" fill={colour} fillOpacity="0.12" stroke={colour} strokeWidth="2" />
-              <circle cx="90" cy="90" r="40" fill={colour} fillOpacity="0.85" />
+              <circle cx="90" cy="90" r="56" fill={colour} fillOpacity="0.10" stroke={colour} strokeWidth="2" />
+              <circle cx="90" cy="90" r="40" fill={colour} fillOpacity="0.18" stroke={colour} strokeWidth="1.5" strokeOpacity="0.55" />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-              <p className="font-display tabular-nums" style={{
-                fontSize: '3rem', lineHeight: 1, color: colour, letterSpacing: '-0.03em',
-              }}>
-                {item.intensity}<span style={{ fontSize: '1.25rem' }}>%</span>
+              <p
+                className="font-display font-semibold tabular-nums"
+                style={{
+                  fontSize: '3rem',
+                  lineHeight: 1,
+                  color: 'var(--color-text-1)',
+                  letterSpacing: '-0.03em',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.18)',
+                }}
+              >
+                {item.intensity}<span style={{ fontSize: '1.25rem', color: colour }}>%</span>
               </p>
               <p className="eyebrow mt-1.5" style={{ color: 'var(--color-text-2)' }}>{intensityLabel(item.intensity)}</p>
             </div>
