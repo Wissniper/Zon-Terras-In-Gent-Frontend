@@ -208,19 +208,6 @@ body::before {
 .fade-up-delay-3 { animation-delay: 0.24s; }
 .fade-up-delay-4 { animation-delay: 0.32s; }
 
-/* ── Marker Fade-In ────────────────────────────────── */
-@keyframes marker-fade-in {
-  from { opacity: 0; transform: scale(0.6); }
-  to   { opacity: 1; transform: scale(1); }
-}
-.marker-fade-in {
-  animation: marker-fade-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  will-change: opacity, transform;
-}
-@media (prefers-reduced-motion: reduce) {
-  .marker-fade-in { animation: none; }
-}
-
 /* ── Shimmer (loading) ─────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -200% 0; }

@@ -12,6 +12,8 @@ interface Props {
   sunPosition: SunPosition | null;
   mapLoaded: boolean;
   enableShadows?: boolean;
+  /** When true, defer the first lighting computation until the map fires `idle`. */
+  deferUntilIdle?: boolean;
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -42,19 +44,39 @@ function pickLightPreset(altitudeDeg: number, azimuthDeg: number): 'dawn' | 'day
   return azimuthDeg < 180 ? 'dawn' : 'dusk';
 }
 
-export default function AtmosphericLighting({ mapRef, sunPosition, mapLoaded, enableShadows = true }: Props) {
+export default function AtmosphericLighting({
+  mapRef, sunPosition, mapLoaded, enableShadows = true, deferUntilIdle = true,
+}: Props) {
   const lastPreset = useRef<string | null>(null);
   const rafRef = useRef<number | null>(null);
+  const firstApplyDone = useRef(false);
 
   useEffect(() => {
     if (!mapLoaded || !sunPosition || !mapRef.current) return;
     const map = mapRef.current.getMap() as MapboxMap;
+    const sun = sunPosition; // capture for narrowed reads inside `apply`
 
-    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
+    const schedule = () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(apply);
+    };
+
+    let detachIdle: (() => void) | null = null;
+    if (deferUntilIdle && !firstApplyDone.current) {
+      const onIdle = () => {
+        firstApplyDone.current = true;
+        schedule();
+      };
+      map.once('idle', onIdle);
+      detachIdle = () => map.off('idle', onIdle);
+    } else {
+      schedule();
+    }
+
+    function apply() {
       rafRef.current = null;
-      const altDeg = (sunPosition.altitude * 180) / Math.PI;
-      const azDeg = ((sunPosition.azimuth * 180) / Math.PI + 360) % 360;
+      const altDeg = (sun.altitude * 180) / Math.PI;
+      const azDeg = ((sun.azimuth * 180) / Math.PI + 360) % 360;
 
       const preset = pickLightPreset(altDeg, azDeg);
       if (preset !== lastPreset.current) {
@@ -64,7 +86,7 @@ export default function AtmosphericLighting({ mapRef, sunPosition, mapLoaded, en
         } catch { /* style without basemap config */ }
       }
 
-      const sinAlt = Math.max(0, Math.sin(sunPosition.altitude));
+      const sinAlt = Math.max(0, Math.sin(sun.altitude));
       const dayLerp = smoothstep(-6, 6, altDeg);
       const ambientIntensity = altDeg > 0
         ? 0.2 + sinAlt * 0.6
@@ -112,15 +134,16 @@ export default function AtmosphericLighting({ mapRef, sunPosition, mapLoaded, en
       try {
         map.setLights(lights);
       } catch { /* style not ready or unsupported */ }
-    });
+    }
 
     return () => {
       if (rafRef.current !== null) {
         cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
+      if (detachIdle) detachIdle();
     };
-  }, [sunPosition, mapLoaded, mapRef, enableShadows]);
+  }, [sunPosition, mapLoaded, mapRef, enableShadows, deferUntilIdle]);
 
   return null;
 }

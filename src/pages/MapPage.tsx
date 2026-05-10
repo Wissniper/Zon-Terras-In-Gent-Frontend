@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useDeferredValue } from 'react';
 import Map, { Marker } from 'react-map-gl/mapbox';
 import type { MapRef, MarkerEvent } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
@@ -14,7 +14,6 @@ import { useRestaurantSunData } from '../hooks/useRestaurantSunData';
 import { useEventSunData } from '../hooks/useEventSunData';
 import { useDeviceCapabilities } from '../hooks/useDeviceCapabilities';
 import { useMapLoadingState } from '../hooks/useMapLoadingState';
-import { useViewportBounds } from '../hooks/useViewportBounds';
 import { intensityColor, intensityLabel } from '../utils/intensity';
 import AtmosphericLighting from '../components/AtmosphericLighting';
 import SunTimeline from '../components/SunTimeline';
@@ -166,18 +165,31 @@ export default function MapPage() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
   const caps = useDeviceCapabilities();
-  const viewportBounds = useViewportBounds(mapRef, mapLoaded);
   const loadingState = useMapLoadingState(mapRef, mapLoaded);
-  const { data: terrasenAll = [] } = useTerrasData({ bounds: viewportBounds });
-  const { data: restaurantsAll = [] } = useRestaurantsData({ bounds: viewportBounds });
-  const { data: eventsAll = [] } = useEventsData({ bounds: viewportBounds });
+
+  // Three queries fire in parallel from mount — TanStack Query batches them on
+  // its own microtask queue, so the dataset stream is fully overlapped with
+  // Mapbox's style/tile load.
+  const { data: terrasenAll = [] } = useTerrasData();
+  const { data: restaurantsAll = [] } = useRestaurantsData();
+  const { data: eventsAll = [] } = useEventsData();
 
   // Cap visible markers on low-end devices to keep DOM size & frame budget sane.
-  // Backend already viewport-filters; this is a final per-device cap.
   const MARKER_CAP = caps.isLowEnd ? 75 : 500;
-  const terrasen = useMemo(() => terrasenAll.slice(0, MARKER_CAP), [terrasenAll, MARKER_CAP]);
-  const restaurants = useMemo(() => restaurantsAll.slice(0, MARKER_CAP), [restaurantsAll, MARKER_CAP]);
-  const events = useMemo(() => eventsAll.slice(0, MARKER_CAP), [eventsAll, MARKER_CAP]);
+  const terrasenCapped = useMemo(() => terrasenAll.slice(0, MARKER_CAP), [terrasenAll, MARKER_CAP]);
+  const restaurantsCapped = useMemo(() => restaurantsAll.slice(0, MARKER_CAP), [restaurantsAll, MARKER_CAP]);
+  const eventsCapped = useMemo(() => eventsAll.slice(0, MARKER_CAP), [eventsAll, MARKER_CAP]);
+
+  // Defer marker rendering so a fresh dataset never blocks the map's first paint
+  // or competes with a pan/zoom — React paints the high-priority work first and
+  // catches up the marker tree on a subsequent frame.
+  const terrasen = useDeferredValue(terrasenCapped);
+  const restaurants = useDeferredValue(restaurantsCapped);
+  const events = useDeferredValue(eventsCapped);
+
+  // Render markers only after the map has reported its first idle. This keeps
+  // hundreds of DOM nodes off the critical path during the heaviest load phase.
+  const showMarkers = loadingState.ready;
   const sunPosition = useSunPosition();
   const terrasSunData = useTerrasSunData(selectedTerras?.uuid ?? null);
   const restaurantSunData = useRestaurantSunData(selectedRestaurant?.uuid ?? null);
@@ -295,7 +307,7 @@ export default function MapPage() {
           />
 
           {/* Terraces */}
-          {(layerFilter === 'terras' || layerFilter === 'all') &&
+          {showMarkers && (layerFilter === 'terras' || layerFilter === 'all') &&
             terrasen.map((t) => (
               <Marker
                 key={t.uuid}
@@ -307,7 +319,7 @@ export default function MapPage() {
                   selectTerras(t);
                 }}
               >
-                <div className="marker-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                   <TerrasMarkerSvg />
                   <MarkerLabel>{t.name}</MarkerLabel>
                 </div>
@@ -315,7 +327,7 @@ export default function MapPage() {
             ))}
 
           {/* Restaurants */}
-          {(layerFilter === 'restaurants' || layerFilter === 'all') &&
+          {showMarkers && (layerFilter === 'restaurants' || layerFilter === 'all') &&
             restaurants.map((r) => (
               <Marker
                 key={r.uuid}
@@ -327,7 +339,7 @@ export default function MapPage() {
                   selectRestaurant(r);
                 }}
               >
-                <div className="marker-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                   <RestaurantMarkerSvg />
                   <MarkerLabel>{r.name}</MarkerLabel>
                 </div>
@@ -335,7 +347,7 @@ export default function MapPage() {
             ))}
 
           {/* Events */}
-          {(layerFilter === 'events' || layerFilter === 'all') &&
+          {showMarkers && (layerFilter === 'events' || layerFilter === 'all') &&
             events.map((ev) => (
               <Marker
                 key={ev.uuid}
@@ -347,7 +359,7 @@ export default function MapPage() {
                   selectEvent(ev);
                 }}
               >
-                <div className="marker-fade-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
                   <EventMarkerSvg />
                   <MarkerLabel>{ev.title}</MarkerLabel>
                 </div>
@@ -356,13 +368,9 @@ export default function MapPage() {
 
         </Map>
 
-        {/* Skeleton overlay — only during the initial map load. After Mapbox
-            reports its first `idle`, subsequent pan/zoom transitions rely on
-            built-in fadeDuration tile cross-fade for continuity. */}
-        <MapSkeleton
-          visible={!mapLoaded || !loadingState.ready}
-          progress={loadingState.progress}
-        />
+        {/* Lightweight loading curtain — visible only until Mapbox fires
+            its first `idle` event. Pure CSS, no SVG animations. */}
+        <MapSkeleton visible={!mapLoaded || !loadingState.ready} />
 
         {/* ── Floating panels ─────────────────────────── */}
 
