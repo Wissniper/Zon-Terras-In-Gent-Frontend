@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 
 export interface DeviceCapabilities {
   isMobile: boolean;
+  isSafari: boolean;
   isLowEnd: boolean;
   pixelRatio: number;
   hardwareConcurrency: number;
@@ -40,6 +41,12 @@ export function detectDeviceCapabilities(): DeviceCapabilities {
     (/Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry/i.test(ua) ||
       window.matchMedia?.('(pointer: coarse)').matches === true);
 
+  // Safari detection: matches desktop Safari + iOS WebKit (which is always Safari).
+  // Excludes Chrome/Edge/Firefox on macOS, which all include "Safari" in UA but
+  // also include their own engine identifier.
+  const isSafari =
+    /Safari/i.test(ua) && !/Chrome|Chromium|Edg|Edge|Firefox|FxiOS|CriOS/i.test(ua);
+
   const hardwareConcurrency =
     typeof navigator !== 'undefined' ? navigator.hardwareConcurrency || 4 : 4;
   const deviceMemoryGB =
@@ -68,6 +75,7 @@ export function detectDeviceCapabilities(): DeviceCapabilities {
 
   return {
     isMobile,
+    isSafari,
     isLowEnd,
     pixelRatio,
     hardwareConcurrency,
@@ -75,9 +83,12 @@ export function detectDeviceCapabilities(): DeviceCapabilities {
     prefersReducedMotion,
     maxParallelImageRequests: isLowEnd ? 8 : 16,
     fadeDurationMs: prefersReducedMotion ? 0 : isLowEnd ? 200 : 500,
-    antialias: !isLowEnd && webgl2,
+    // Safari's WebGL2 photorealistic-style support is uneven; even where the
+    // probe reports webgl2=true, the Standard style frequently renders blank.
+    // Skip antialiasing on Safari for safer context creation.
+    antialias: !isLowEnd && webgl2 && !isSafari,
     enableTerrain: !isLowEnd,
-    enableShadows: !isLowEnd,
+    enableShadows: !isLowEnd && !isSafari,
     webgl2,
   };
 }

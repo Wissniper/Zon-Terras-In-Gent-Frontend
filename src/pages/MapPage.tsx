@@ -92,6 +92,7 @@ export default function MapPage() {
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
+  const [mapError, setMapError] = useState<string | null>(null);
   const caps = useDeviceCapabilities();
   const loadingState = useMapLoadingState(mapRef, mapLoaded);
 
@@ -217,9 +218,9 @@ export default function MapPage() {
           initialViewState={INITIAL_VIEW}
           style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
           mapLib={mapboxgl}
-          // Standard style requires WebGL2; fall back to streets-v12 for
-          // browsers that only have WebGL1 (older Safari, locked-down envs).
-          mapStyle={caps.webgl2 ? 'mapbox://styles/mapbox/standard' : 'mapbox://styles/mapbox/streets-v12'}
+          // Standard style needs WebGL2; Safari's WebGL2 photoreal pipeline
+          // is unreliable so we explicitly route Safari onto streets-v12 too.
+          mapStyle={(caps.webgl2 && !caps.isSafari) ? 'mapbox://styles/mapbox/standard' : 'mapbox://styles/mapbox/streets-v12'}
           antialias={caps.antialias}
           fadeDuration={caps.fadeDurationMs}
           maxPitch={caps.isLowEnd ? 60 : 75}
@@ -234,7 +235,12 @@ export default function MapPage() {
             setMapLoaded(true);
           }}
           onError={(e) => {
+            const msg =
+              (e?.error as Error | undefined)?.message ||
+              (e as unknown as Error)?.message ||
+              'Unknown Mapbox error';
             console.error('[Mapbox] map error', e?.error || e);
+            setMapError(msg);
           }}
           maxBounds={[3.65, 50.99, 3.82, 51.12]}
           minZoom={12}
@@ -263,6 +269,31 @@ export default function MapPage() {
         {/* Lightweight loading curtain — visible only until Mapbox fires
             its first `idle` event. Pure CSS, no SVG animations. */}
         <MapSkeleton visible={!mapLoaded || !loadingState.ready} />
+
+        {/* Visible Mapbox error banner — surfaces blank-canvas failures
+            (Safari WebGL2, blocked tile requests, invalid token) so they
+            don't disappear into the console. */}
+        {mapError && (
+          <div
+            className="absolute top-5 left-1/2 -translate-x-1/2 z-50 max-w-[420px] px-4 py-3 rounded-lg"
+            style={{
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-coral)',
+              boxShadow: 'var(--shadow-float)',
+              fontSize: 13,
+              color: 'var(--color-text-1)',
+            }}
+            role="alert"
+          >
+            <p className="font-semibold mb-1" style={{ color: 'var(--color-coral)' }}>
+              Map failed to load
+            </p>
+            <p className="text-text-2" style={{ wordBreak: 'break-word' }}>{mapError}</p>
+            <p className="text-text-3 text-xs mt-2">
+              Browser: {caps.isSafari ? 'Safari' : 'Other'} · WebGL2: {caps.webgl2 ? 'yes' : 'no'}
+            </p>
+          </div>
+        )}
 
         {/* ── Floating panels ─────────────────────────── */}
 
