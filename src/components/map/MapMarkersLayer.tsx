@@ -282,13 +282,22 @@ export default function MapMarkersLayer({
   selectedUuid,
   onSelectTerras, onSelectRestaurant, onSelectEvent,
 }: Props) {
-  const propsRef = useRef({ terrasen, restaurants, events, onSelectTerras, onSelectRestaurant, onSelectEvent });
-  useEffect(() => {
-    propsRef.current = { terrasen, restaurants, events, onSelectTerras, onSelectRestaurant, onSelectEvent };
-  });
-
   const [setupReady, setSetupReady] = useState(false);
   const [bounds, setBounds] = useState<Bounds | null>(null);
+
+  // Single ref carrying every value the imperative push-path needs. Mutated
+  // every render so the `ensure()` callback (called from `style.load` events,
+  // potentially long after this render committed) always sees fresh data.
+  const stateRef = useRef({
+    visible, terrasen, restaurants, events, layerFilter, bounds,
+    onSelectTerras, onSelectRestaurant, onSelectEvent,
+  });
+  useEffect(() => {
+    stateRef.current = {
+      visible, terrasen, restaurants, events, layerFilter, bounds,
+      onSelectTerras, onSelectRestaurant, onSelectEvent,
+    };
+  });
 
   // Track the current viewport (with 12% padding) so we only feed the
   // GeoJSON source the points that could plausibly become visible.
@@ -339,10 +348,24 @@ export default function MapMarkersLayer({
     const map = mapRef.current.getMap() as MapboxMap;
 
     let cancelled = false;
+    const pushFeatures = () => {
+      const src = map.getSource(SOURCE_ID) as GeoJSONSource | undefined;
+      if (!src) return;
+      const s = stateRef.current;
+      const features = s.visible
+        ? buildFeatures(s.terrasen, s.restaurants, s.events, s.layerFilter, s.bounds)
+        : [];
+      src.setData({ type: 'FeatureCollection', features });
+    };
+
     const ensure = () => {
       if (cancelled) return;
       try {
         setupLayers(map);
+        // Force-push the current data here so a `style.load` re-fire (which
+        // wipes runtime sources/layers) recovers without waiting for a React
+        // re-render to retrigger the data effect.
+        pushFeatures();
         setSetupReady(true);
       } catch (err) {
         console.warn('[MapMarkersLayer] setupLayers failed', err);
@@ -363,7 +386,7 @@ export default function MapMarkersLayer({
       const uuid = f.properties?.uuid as string | undefined;
       const category = f.properties?.category as Category | undefined;
       if (!uuid || !category) return;
-      const p = propsRef.current;
+      const p = stateRef.current;
       if (category === 'terras') {
         const t = p.terrasen.find((x) => x.uuid === uuid);
         if (t) p.onSelectTerras(t);
