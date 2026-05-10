@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import Map, { Marker } from 'react-map-gl/mapbox';
 import type { MapRef, MarkerEvent } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
@@ -222,6 +222,34 @@ export default function MapPage() {
     if (t) selectTerras(t);
   };
 
+  const recenterMap = () => {
+    if (!mapRef.current) return;
+    mapRef.current.flyTo({
+      center: [INITIAL_VIEW.longitude, INITIAL_VIEW.latitude],
+      zoom: INITIAL_VIEW.zoom,
+      pitch: INITIAL_VIEW.pitch,
+      bearing: INITIAL_VIEW.bearing,
+      duration: 1000,
+      essential: true,
+    });
+  };
+
+  // Events within ~500m of the selected terras (Pythagoras on lng/lat is fine for tiny radius).
+  const nearbyEvents = useMemo(() => {
+    if (!selectedTerras || events.length === 0) return [];
+    const [tLng, tLat] = selectedTerras.location.coordinates;
+    return events
+      .map((ev) => {
+        const [eLng, eLat] = ev.location.coordinates;
+        const d = Math.sqrt((tLng - eLng) ** 2 + (tLat - eLat) ** 2);
+        return { ev, d };
+      })
+      .filter(({ d }) => d < 0.005)
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 3)
+      .map(({ ev }) => ev);
+  }, [selectedTerras, events]);
+
   return (
     <div className="flex-1 flex flex-col min-h-0 relative">
       <div className="flex-1 relative overflow-hidden">
@@ -322,6 +350,35 @@ export default function MapPage() {
           <LayerToggle value={layerFilter} onChange={setLayerFilter} />
         </div>
 
+        {/* Recenter map button — bottom-left */}
+        <button
+          onClick={recenterMap}
+          className="absolute bottom-5 left-5 z-10 rounded-full transition-all active:scale-95 hover:scale-105"
+          style={{
+            width: 44,
+            height: 44,
+            background: 'var(--color-map-overlay)',
+            border: '1px solid var(--color-map-overlay-border)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            boxShadow: 'var(--shadow-float)',
+            color: 'var(--color-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          aria-label="Recenter map on Ghent"
+          title="Recenter on Ghent"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <line x1="12" y1="2" x2="12" y2="5" />
+            <line x1="12" y1="19" x2="12" y2="22" />
+            <line x1="2" y1="12" x2="5" y2="12" />
+            <line x1="19" y1="12" x2="22" y2="12" />
+          </svg>
+        </button>
+
         {/* Mobile timeline FAB */}
         <button
           className="md:hidden absolute bottom-5 right-5 z-20 w-14 h-14 rounded-full flex items-center justify-center transition-transform active:scale-95"
@@ -383,6 +440,8 @@ export default function MapPage() {
           terrasIntensity={terrasSunData.intensity}
           restaurantIntensity={restaurantSunData.intensity}
           eventIntensity={eventSunData.intensity}
+          nearbyEvents={nearbyEvents}
+          onPickEvent={selectEvent}
           onClose={() => {
             setSelectedTerras(null); setSelectedRestaurant(null); setSelectedEvent(null);
           }}
@@ -406,11 +465,13 @@ interface SelectedProps {
   terrasIntensity: number;
   restaurantIntensity: number;
   eventIntensity: number;
+  nearbyEvents: Event[];
+  onPickEvent: (ev: Event) => void;
   onClose: () => void;
 }
 
 function SelectedPanel(props: SelectedProps) {
-  const { terras, restaurant, event } = props;
+  const { terras, restaurant, event, nearbyEvents, onPickEvent } = props;
   const active = terras ?? restaurant ?? event;
   if (!active) return null;
 
@@ -509,6 +570,64 @@ function SelectedPanel(props: SelectedProps) {
               </div>
             </div>
           </div>
+
+          {terras && nearbyEvents.length > 0 && (
+            <div className="mb-4">
+              <p
+                className="mb-2"
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: 'var(--color-text-3)',
+                }}
+              >
+                Nearby events
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {nearbyEvents.map((ev) => (
+                  <button
+                    key={ev.uuid}
+                    onClick={() => onPickEvent(ev)}
+                    className="w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors"
+                    style={{
+                      background: 'var(--color-surface-2)',
+                      border: '1px solid var(--color-border)',
+                    }}
+                  >
+                    <span
+                      className="shrink-0 inline-flex items-center justify-center"
+                      style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 6,
+                        background: MARKER.event,
+                        color: '#fff',
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}
+                    >
+                      ★
+                    </span>
+                    <span
+                      className="text-text-1 truncate flex-1"
+                      style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.25 }}
+                    >
+                      {ev.title}
+                    </span>
+                    <svg
+                      width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+                      style={{ color: 'var(--color-text-3)' }}
+                    >
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-2.5">
             <a
