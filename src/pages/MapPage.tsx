@@ -133,13 +133,27 @@ export default function MapPage() {
     }
     if (item && mapRef.current) {
       const [lng, lat] = item.location.coordinates;
-      mapRef.current.flyTo({ center: [lng, lat], zoom: 17, duration: 1200 });
+      const currentZoom = mapRef.current.getMap().getZoom();
+      mapRef.current.flyTo({
+        center: [lng, lat],
+        zoom: Math.max(currentZoom, 18),
+        duration: 1200,
+      });
     }
   }, [mapLoaded, location.state, terrasen, restaurants, events]);
 
+  // When focusing a marker, never *zoom out* — only zoom in if the user is
+  // currently below the building-detail threshold. 18 is the sweet spot
+  // where Mapbox Standard renders individual buildings clearly.
   const flyToCoords = (coords: [number, number]) => {
     if (!mapRef.current) return;
-    mapRef.current.flyTo({ center: coords, zoom: 17, duration: 900, essential: true });
+    const currentZoom = mapRef.current.getMap().getZoom();
+    mapRef.current.flyTo({
+      center: coords,
+      zoom: Math.max(currentZoom, 18),
+      duration: 900,
+      essential: true,
+    });
   };
 
   const selectTerras = (t: Terras) => {
