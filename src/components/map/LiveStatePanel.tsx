@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSelectedTime } from '../../contexts/TimeContext';
-import { useWeatherData } from '../../hooks/useWeatherData';
+import { useWeatherAtTime } from '../../hooks/useWeatherAtTime';
 import { useSunPosition } from '../../hooks/useSunPosition';
 
 /**
@@ -11,7 +11,7 @@ import { useSunPosition } from '../../hooks/useSunPosition';
  */
 export default function LiveStatePanel() {
   const { selectedTime } = useSelectedTime();
-  const { data: weather } = useWeatherData();
+  const { data: weather } = useWeatherAtTime();
   const sun = useSunPosition();
 
   const [now, setNow] = useState(() => new Date());

@@ -1,30 +1,23 @@
-import { useQuery } from '@tanstack/react-query';
-import { searchTerras } from '../../services/terrasService';
 import { intensityColor, intensityLabel } from '../../utils/intensity';
+import { useSunniestTerrasen } from '../../hooks/useSunniestTerrasen';
+import { useSelectedTime } from '../../contexts/TimeContext';
 
 interface Props {
   onPick: (uuid: string) => void;
 }
 
 /**
- * Top-right floating leaderboard. Shows the 5 sunniest terraces right now and
- * lets the user click through to focus one on the map.
+ * Top-right floating leaderboard. Shows the 5 sunniest terraces at the
+ * timeline's selectedTime. Title flips between "Sunniest right now" (live)
+ * and "Sunniest at HH:MM" (scrubbed).
  */
 export default function SunniestNowPanel({ onPick }: Props) {
-  const { data, isLoading } = useQuery({
-    queryKey: ['sunniest-now'],
-    // Don't filter by sunnyOnly (backend: intensity > 50). On overcast days
-    // that empties the leaderboard. Top-5 by intensity DESC is what we want
-    // regardless of weather — backend already sorts intensity:-1.
-    queryFn: () => searchTerras(),
-    staleTime: 30_000,
-    refetchInterval: 60_000, // sun moves; keep the "live" badge honest
-    refetchOnWindowFocus: true,
-  });
+  const { items, isLoading } = useSunniestTerrasen(5);
+  const { selectedTime } = useSelectedTime();
 
-  const items = [...(data?.['hydra:member'] ?? [])]
-    .sort((a, b) => b.intensity - a.intensity)
-    .slice(0, 5);
+  const selectedDate = new Date(selectedTime);
+  const isLive = Math.abs(selectedDate.getTime() - Date.now()) < 5 * 60_000;
+  const hhmm = selectedDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <div
@@ -39,11 +32,11 @@ export default function SunniestNowPanel({ onPick }: Props) {
       }}
     >
       <div className="flex items-baseline justify-between mb-3">
-        <span className="eyebrow">Sunniest right now</span>
-        <span className="text-[11px] tabular-nums text-text-3">live</span>
+        <span className="eyebrow">{isLive ? 'Sunniest right now' : `Sunniest at ${hhmm}`}</span>
+        <span className="text-[11px] tabular-nums text-text-3">{isLive ? 'live' : 'preview'}</span>
       </div>
 
-      {isLoading && (
+      {isLoading && items.length === 0 && (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-9 rounded-lg shimmer" />
@@ -58,8 +51,8 @@ export default function SunniestNowPanel({ onPick }: Props) {
       )}
 
       <ol className="space-y-0.5">
-        {items.map((t, i) => {
-          const colour = intensityColor(t.intensity);
+        {items.map(({ terras: t, intensity }, i) => {
+          const colour = intensityColor(intensity);
           return (
             <li key={t.uuid}>
               <button
@@ -83,14 +76,14 @@ export default function SunniestNowPanel({ onPick }: Props) {
                     {t.name}
                   </p>
                   <p className="truncate text-text-3" style={{ fontSize: 10.5 }}>
-                    {intensityLabel(t.intensity)}
+                    {intensityLabel(intensity)}
                   </p>
                 </div>
                 <span
                   className="text-[11px] font-bold tabular-nums shrink-0 px-2 py-0.5 rounded-md"
                   style={{ color: colour, background: `${colour}24` }}
                 >
-                  {t.intensity}%
+                  {intensity}%
                 </span>
               </button>
             </li>
