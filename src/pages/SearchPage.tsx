@@ -6,6 +6,7 @@ import { searchRestaurants } from '../services/restaurantService';
 import { searchEvents } from '../services/eventService';
 import { useFilters } from '../contexts/FilterContext';
 import { useSelectedTime } from '../contexts/TimeContext';
+import { useTimeAwareIntensities } from '../hooks/useTimeAwareIntensities';
 import { intensityColor, intensityLabel } from '../utils/intensity';
 import Card from '../components/ui/Card';
 import Pill from '../components/ui/Pill';
@@ -233,12 +234,30 @@ export default function SearchPage() {
     refetchOnMount: 'always',
     refetchOnWindowFocus: true,
   });
-  const featured = useMemo(() => editorial.data?.['hydra:member']?.[0], [editorial.data]);
+  // Same data path the map's "Sunniest at HH:MM" leaderboard uses — pull
+  // a candidate pool, then enrich each with the per-entity time-aware sun
+  // endpoint so intensities update automatically when the timeline scrubs.
+  const editorialPool = useMemo(
+    () => (editorial.data?.['hydra:member'] ?? []).slice(0, 24),
+    [editorial.data],
+  );
+  const editorialIntensities = useTimeAwareIntensities(editorialPool, 'terras');
+  const editorialEnriched = useMemo(
+    () => editorialPool.map((t) => ({
+      ...t,
+      intensity: editorialIntensities.byUuid.get(t.uuid) ?? t.intensity,
+    })),
+    [editorialPool, editorialIntensities.byUuid],
+  );
+  const featured = useMemo(
+    () => [...editorialEnriched].sort((a, b) => b.intensity - a.intensity)[0],
+    [editorialEnriched],
+  );
   const partial = useMemo(
-    () => (editorial.data?.['hydra:member'] ?? [])
+    () => editorialEnriched
       .filter((t) => t.intensity >= 40 && t.intensity < 70)
       .slice(0, 8),
-    [editorial.data],
+    [editorialEnriched],
   );
 
   // Each list query: fresh on mount + every 60s, matching the map leaderboard.
@@ -279,6 +298,48 @@ export default function SearchPage() {
   const isLoading = kind === 'terraces' ? terrasQuery.isLoading : kind === 'restaurants' ? restaurantQuery.isLoading : eventQuery.isLoading;
   const total = activeData?.['hydra:totalItems'] ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // Enrich the page's items with time-aware intensities (same path as the
+  // map's leaderboard) so when the timeline scrubs, every card on Discover
+  // updates automatically — no need to wait for backend search refetch.
+  const browseTerras = useMemo(
+    () => (kind === 'terraces' ? (terrasQuery.data?.['hydra:member'] ?? []) : []),
+    [kind, terrasQuery.data],
+  );
+  const browseRestaurants = useMemo(
+    () => (kind === 'restaurants' ? (restaurantQuery.data?.['hydra:member'] ?? []) : []),
+    [kind, restaurantQuery.data],
+  );
+  const browseEvents = useMemo(
+    () => (kind === 'events' ? (eventQuery.data?.['hydra:member'] ?? []) : []),
+    [kind, eventQuery.data],
+  );
+
+  const browseTerrasIntensities = useTimeAwareIntensities(browseTerras, 'terras');
+  const browseRestaurantIntensities = useTimeAwareIntensities(browseRestaurants, 'restaurant');
+  const browseEventIntensities = useTimeAwareIntensities(browseEvents, 'event');
+
+  const browseTerrasEnriched = useMemo(
+    () => browseTerras.map((t) => ({
+      ...t,
+      intensity: browseTerrasIntensities.byUuid.get(t.uuid) ?? t.intensity,
+    })),
+    [browseTerras, browseTerrasIntensities.byUuid],
+  );
+  const browseRestaurantsEnriched = useMemo(
+    () => browseRestaurants.map((r) => ({
+      ...r,
+      intensity: browseRestaurantIntensities.byUuid.get(r.uuid) ?? r.intensity,
+    })),
+    [browseRestaurants, browseRestaurantIntensities.byUuid],
+  );
+  const browseEventsEnriched = useMemo(
+    () => browseEvents.map((e) => ({
+      ...e,
+      intensity: browseEventIntensities.byUuid.get(e.uuid) ?? e.intensity,
+    })),
+    [browseEvents, browseEventIntensities.byUuid],
+  );
 
   return (
     <div className="flex-1 overflow-y-auto bg-atmospheric">
@@ -448,13 +509,13 @@ export default function SearchPage() {
           )}
           {!isLoading && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {kind === 'terraces' && (terrasQuery.data?.['hydra:member'] ?? []).map((item) => (
+              {kind === 'terraces' && browseTerrasEnriched.map((item) => (
                 <TerrasCard key={item.uuid} item={item} />
               ))}
-              {kind === 'restaurants' && (restaurantQuery.data?.['hydra:member'] ?? []).map((item) => (
+              {kind === 'restaurants' && browseRestaurantsEnriched.map((item) => (
                 <RestaurantCard key={item.uuid} item={item} />
               ))}
-              {kind === 'events' && (eventQuery.data?.['hydra:member'] ?? []).map((item) => (
+              {kind === 'events' && browseEventsEnriched.map((item) => (
                 <EventCard key={item.uuid} item={item} />
               ))}
             </div>
