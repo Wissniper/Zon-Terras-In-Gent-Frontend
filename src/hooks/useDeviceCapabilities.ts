@@ -110,12 +110,9 @@ export function detectDeviceCapabilities(): DeviceCapabilities {
     prefersReducedMotion,
     maxParallelImageRequests: isLowEnd ? 8 : 16,
     fadeDurationMs: prefersReducedMotion ? 0 : isLowEnd ? 200 : 500,
-    // Safari's WebGL2 photorealistic-style support is uneven; even where the
-    // probe reports webgl2=true, the Standard style frequently renders blank.
-    // Skip antialiasing on Safari for safer context creation.
-    antialias: !isLowEnd && webgl2 && !isSafari,
+    antialias: !isLowEnd,
     enableTerrain: !isLowEnd,
-    enableShadows: !isLowEnd && !isSafari,
+    enableShadows: !isLowEnd,
     webgl2,
   };
 }

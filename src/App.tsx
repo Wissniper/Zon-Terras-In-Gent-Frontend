@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import OfflineIndicator from './components/OfflineIndicator';
-import MapPage from './pages/MapPage';
+import MapPageRouter from './pages/MapPageRouter';
 import TerrasDetailPage from './pages/TerrasDetailPage';
 import RestaurantDetailPage from './pages/RestaurantDetailPage';
 import EventDetailPage from './pages/EventDetailPage';
@@ -21,7 +21,7 @@ function Layout() {
       <NavBar />
       <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         <Routes>
-          <Route path="/"            element={<MapPage />} />
+          <Route path="/"            element={<MapPageRouter />} />
           <Route path="/terrasen/:id"    element={<TerrasDetailPage />} />
           <Route path="/restaurants/:id" element={<RestaurantDetailPage />} />
           <Route path="/events/:id"      element={<EventDetailPage />} />

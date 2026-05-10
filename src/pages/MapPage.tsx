@@ -92,36 +92,7 @@ export default function MapPage() {
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
-  const [mapError, setMapError] = useState<string | null>(null);
   const caps = useDeviceCapabilities();
-
-  // Mapbox throws `UBO size … exceeds device limit 0` inside its render
-  // loop on Safari builds with broken WebGL2 UBO reporting. That error is
-  // raised on a requestAnimationFrame callback, so it never reaches React's
-  // <Map onError>. Catch it via the global error event instead.
-  useEffect(() => {
-    const onWindowError = (event: ErrorEvent) => {
-      const msg = event.message || (event.error as Error | undefined)?.message || '';
-      if (/UBO size|uniform.+limit|device limit 0|WebGL.*lost/i.test(msg)) {
-        setMapError(msg);
-      }
-    };
-    window.addEventListener('error', onWindowError);
-    return () => window.removeEventListener('error', onWindowError);
-  }, []);
-
-  // If the map hasn't fired `load` after 6 s, something is wrong (typically
-  // the UBO error swallowed inside Mapbox's render loop). Surface a generic
-  // "didn't initialise" message so the page never hangs at the skeleton.
-  useEffect(() => {
-    if (mapLoaded || mapError) return;
-    const t = window.setTimeout(() => {
-      setMapError(
-        "Map didn't initialise. Your browser's WebGL 2 stack may not be compatible with Mapbox v3.",
-      );
-    }, 6000);
-    return () => window.clearTimeout(t);
-  }, [mapLoaded, mapError]);
   const loadingState = useMapLoadingState(mapRef, mapLoaded);
 
   // Three queries fire in parallel from mount — TanStack Query schedules them
@@ -246,9 +217,7 @@ export default function MapPage() {
           initialViewState={INITIAL_VIEW}
           style={{ width: '100%', height: '100%', position: 'absolute', inset: 0 }}
           mapLib={mapboxgl}
-          // Standard style needs WebGL2; Safari's WebGL2 photoreal pipeline
-          // is unreliable so we explicitly route Safari onto streets-v12 too.
-          mapStyle={(caps.webgl2 && !caps.isSafari) ? 'mapbox://styles/mapbox/standard' : 'mapbox://styles/mapbox/streets-v12'}
+          mapStyle="mapbox://styles/mapbox/standard"
           antialias={caps.antialias}
           fadeDuration={caps.fadeDurationMs}
           maxPitch={caps.isLowEnd ? 60 : 75}
@@ -256,19 +225,8 @@ export default function MapPage() {
           preserveDrawingBuffer={false}
           onLoad={() => {
             const map = mapRef.current?.getMap() as MapboxMap;
-            // Standard-style only — guard so streets-v12 fallback doesn't throw.
-            try {
-              map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
-            } catch { /* style without basemap config */ }
+            map.setConfigProperty('basemap', 'showPointOfInterestLabels', false);
             setMapLoaded(true);
-          }}
-          onError={(e) => {
-            const msg =
-              (e?.error as Error | undefined)?.message ||
-              (e as unknown as Error)?.message ||
-              'Unknown Mapbox error';
-            console.error('[Mapbox] map error', e?.error || e);
-            setMapError(msg);
           }}
           maxBounds={[3.65, 50.99, 3.82, 51.12]}
           minZoom={12}
@@ -297,48 +255,6 @@ export default function MapPage() {
         {/* Lightweight loading curtain — visible only until Mapbox fires
             its first `idle` event. Pure CSS, no SVG animations. */}
         <MapSkeleton visible={!mapLoaded || !loadingState.ready} />
-
-        {/* Visible Mapbox error banner — surfaces blank-canvas failures so
-            they don't vanish into the console. Detects the well-known
-            Safari/WebGL2 UBO failure and tells the user what to do. */}
-        {mapError && (() => {
-          const isUboLimit = /UBO|uniform.+limit|device limit 0/i.test(mapError);
-          return (
-            <div
-              className="absolute top-5 left-1/2 -translate-x-1/2 z-50 max-w-[480px] px-5 py-4 rounded-xl"
-              style={{
-                background: 'var(--color-surface)',
-                border: '1px solid var(--color-coral)',
-                boxShadow: 'var(--shadow-float)',
-                fontSize: 13,
-                color: 'var(--color-text-1)',
-              }}
-              role="alert"
-            >
-              <p className="font-semibold mb-2" style={{ color: 'var(--color-coral)' }}>
-                {isUboLimit ? 'Map renderer not available in this browser' : 'Map failed to load'}
-              </p>
-              {isUboLimit ? (
-                <>
-                  <p className="text-text-2 leading-relaxed">
-                    Mapbox needs WebGL 2 with full uniform-buffer support, which
-                    {' '}{caps.isSafari ? 'this Safari version' : 'this browser'} doesn't
-                    fully provide on the current device. Open the page in
-                    Chrome or Firefox for the full experience.
-                  </p>
-                  <p className="text-text-3 text-xs mt-3">
-                    {mapError}
-                  </p>
-                </>
-              ) : (
-                <p className="text-text-2" style={{ wordBreak: 'break-word' }}>{mapError}</p>
-              )}
-              <p className="text-text-3 text-xs mt-3">
-                Browser: {caps.isSafari ? 'Safari' : 'Other'} · WebGL2: {caps.webgl2 ? 'yes' : 'no'}
-              </p>
-            </div>
-          );
-        })()}
 
         {/* ── Floating panels ─────────────────────────── */}
 
