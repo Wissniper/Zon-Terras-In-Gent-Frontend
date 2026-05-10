@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect, useMemo, useDeferredValue } from 'react';
-import Map, { Marker } from 'react-map-gl/mapbox';
-import type { MapRef, MarkerEvent } from 'react-map-gl/mapbox';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import Map from 'react-map-gl/mapbox';
+import type { MapRef } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
 import type { Map as MapboxMap } from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -14,13 +14,14 @@ import { useRestaurantSunData } from '../hooks/useRestaurantSunData';
 import { useEventSunData } from '../hooks/useEventSunData';
 import { useDeviceCapabilities } from '../hooks/useDeviceCapabilities';
 import { useMapLoadingState } from '../hooks/useMapLoadingState';
-import { useMapZoom } from '../hooks/useMapZoom';
+import { useZoomThreshold } from '../hooks/useMapZoom';
 import { intensityColor, intensityLabel } from '../utils/intensity';
 import AtmosphericLighting from '../components/AtmosphericLighting';
 import SunTimeline from '../components/SunTimeline';
 import LiveStatePanel from '../components/map/LiveStatePanel';
 import SunniestNowPanel from '../components/map/SunniestNowPanel';
 import MapSkeleton from '../components/map/MapSkeleton';
+import MapMarkersLayer from '../components/map/MapMarkersLayer';
 import Pill from '../components/ui/Pill';
 import type { Terras, Restaurant, Event } from '../types';
 
@@ -36,85 +37,12 @@ const INITIAL_VIEW = {
   bearing: -17,
 };
 
+// Marker palette — only the event tone is still used by the "Nearby events"
+// badge in the bottom sheet. All map-pin SVGs were retired in favour of the
+// GPU-rendered MapMarkersLayer.
 const MARKER = {
-  terras:     '#E5870A',
-  restaurant: '#5C8FA8',
-  event:      '#FF6B4A',
+  event: '#FF6B4A',
 };
-
-/* ─── Markers ─────────────────────────────────────── */
-
-function TerrasMarkerSvg() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 28 28" style={{ filter: 'drop-shadow(0 2px 4px rgba(26,22,17,0.55))' }}>
-      <defs>
-        <radialGradient id="t-sun" cx="35%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#FFD075" />
-          <stop offset="100%" stopColor="#E5870A" />
-        </radialGradient>
-      </defs>
-      {[0, 60, 120, 180, 240, 300].map((deg) => {
-        const r = (deg * Math.PI) / 180;
-        return (
-          <line
-            key={deg}
-            x1={14 + 8 * Math.cos(r)}  y1={14 + 8 * Math.sin(r)}
-            x2={14 + 12 * Math.cos(r)} y2={14 + 12 * Math.sin(r)}
-            stroke="#FFB554" strokeWidth="2" strokeLinecap="round"
-          />
-        );
-      })}
-      <circle cx="14" cy="14" r="6" fill="url(#t-sun)" stroke="white" strokeWidth="1.6" />
-    </svg>
-  );
-}
-
-function RestaurantMarkerSvg() {
-  return (
-    <svg width="24" height="26" viewBox="0 0 24 26" style={{ filter: 'drop-shadow(0 2px 4px rgba(26,22,17,0.55))' }}>
-      <rect x="1" y="1" width="22" height="24" rx="7" fill={MARKER.restaurant} stroke="white" strokeWidth="1.6" />
-      <line x1="8.5" y1="6" x2="8.5" y2="10" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-      <line x1="11"  y1="6" x2="11"  y2="10" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M8.5 10 Q9.75 12 9.75 13.5 L9.75 20" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-      <path d="M15.5 6 L15.5 9.5 Q16.5 10.5 15.5 11.5 L15.5 20" stroke="white" strokeWidth="1.5" strokeLinecap="round" fill="none" />
-    </svg>
-  );
-}
-
-function EventMarkerSvg() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 26 26" style={{ filter: 'drop-shadow(0 2px 4px rgba(26,22,17,0.55))' }}>
-      <polygon
-        points="13,2 15.6,9.5 23.5,9.7 17.3,14.7 19.5,22 13,17.8 6.5,22 8.7,14.7 2.5,9.7 10.4,9.5"
-        fill={MARKER.event} stroke="white" strokeWidth="1.4" strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function MarkerLabel({ children }: { children: string }) {
-  return (
-    <span
-      className="font-medium truncate max-w-[110px] text-text-1"
-      style={{
-        marginTop: 4,
-        fontSize: 10.5,
-        fontWeight: 600,
-        background: 'var(--color-map-overlay)',
-        border: '1px solid var(--color-map-overlay-border)',
-        padding: '2px 7px',
-        borderRadius: 999,
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        lineHeight: 1.4,
-        letterSpacing: '0.01em',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-      }}
-    >
-      {children}
-    </span>
-  );
-}
 
 /* ─── Layer toggle ────────────────────────────────── */
 
@@ -167,46 +95,22 @@ export default function MapPage() {
   const [layerFilter, setLayerFilter] = useState<LayerFilter>('all');
   const caps = useDeviceCapabilities();
   const loadingState = useMapLoadingState(mapRef, mapLoaded);
-  const zoom = useMapZoom(mapRef, mapLoaded);
 
-  // Mapbox Standard renders 3D buildings progressively from ~zoom 14 and
-  // reaches full detail by ~15.5. Hold markers back until 3D structures are
-  // visible, then keep them on through 14.5 so a tiny zoom-out doesn't
-  // flicker them off (hysteresis).
-  const ZOOM_SHOW = 15.5;
-  const ZOOM_HIDE = 14.5;
-  const [zoomedIn, setZoomedIn] = useState(false);
-  useEffect(() => {
-    if (!mapLoaded) return;
-    if (zoom >= ZOOM_SHOW && !zoomedIn) setZoomedIn(true);
-    else if (zoom < ZOOM_HIDE && zoomedIn) setZoomedIn(false);
-  }, [zoom, zoomedIn, mapLoaded]);
+  // Markers are gated on the map being interactive AND the user having zoomed
+  // in far enough that 3D buildings are visible. Hysteresis: show at 15.5,
+  // hide at 14.5 — prevents flicker on tiny zoom-outs. The hook only fires a
+  // re-render when the threshold is crossed, not on every zoom tick.
+  const zoomedIn = useZoomThreshold(mapRef, mapLoaded, 15.5, 14.5);
 
-  // Three queries fire in parallel from mount — TanStack Query batches them on
-  // its own microtask queue, so the dataset stream is fully overlapped with
-  // Mapbox's style/tile load.
-  const { data: terrasenAll = [] } = useTerrasData();
-  const { data: restaurantsAll = [] } = useRestaurantsData();
-  const { data: eventsAll = [] } = useEventsData();
+  // Three queries fire in parallel from mount — TanStack Query schedules them
+  // concurrently, so the dataset stream fully overlaps Mapbox's style/tile load.
+  const { data: terrasen = [] } = useTerrasData();
+  const { data: restaurants = [] } = useRestaurantsData();
+  const { data: events = [] } = useEventsData();
 
-  // Cap visible markers on low-end devices to keep DOM size & frame budget sane.
-  const MARKER_CAP = caps.isLowEnd ? 75 : 500;
-  const terrasenCapped = useMemo(() => terrasenAll.slice(0, MARKER_CAP), [terrasenAll, MARKER_CAP]);
-  const restaurantsCapped = useMemo(() => restaurantsAll.slice(0, MARKER_CAP), [restaurantsAll, MARKER_CAP]);
-  const eventsCapped = useMemo(() => eventsAll.slice(0, MARKER_CAP), [eventsAll, MARKER_CAP]);
-
-  // Defer marker rendering so a fresh dataset never blocks the map's first paint
-  // or competes with a pan/zoom — React paints the high-priority work first and
-  // catches up the marker tree on a subsequent frame.
-  const terrasen = useDeferredValue(terrasenCapped);
-  const restaurants = useDeferredValue(restaurantsCapped);
-  const events = useDeferredValue(eventsCapped);
-
-  // Render markers only after (a) the map has reported its first idle, and
-  // (b) the user has zoomed in far enough that Mapbox's 3D buildings are
-  // visible. This keeps the DOM empty during pan/scan navigation and only
-  // pays the marker-render cost once the user is examining a specific area.
   const showMarkers = loadingState.ready && zoomedIn;
+  const selectedUuid =
+    selectedTerras?.uuid ?? selectedRestaurant?.uuid ?? selectedEvent?.uuid ?? null;
   const sunPosition = useSunPosition();
   const terrasSunData = useTerrasSunData(selectedTerras?.uuid ?? null);
   const restaurantSunData = useRestaurantSunData(selectedRestaurant?.uuid ?? null);
@@ -323,65 +227,19 @@ export default function MapPage() {
             enableShadows={caps.enableShadows}
           />
 
-          {/* Terraces */}
-          {showMarkers && (layerFilter === 'terras' || layerFilter === 'all') &&
-            terrasen.map((t) => (
-              <Marker
-                key={t.uuid}
-                longitude={t.location.coordinates[0]}
-                latitude={t.location.coordinates[1]}
-                anchor="center"
-                onClick={(e: MarkerEvent<MouseEvent>) => {
-                  e.originalEvent.stopPropagation();
-                  selectTerras(t);
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-                  <TerrasMarkerSvg />
-                  <MarkerLabel>{t.name}</MarkerLabel>
-                </div>
-              </Marker>
-            ))}
-
-          {/* Restaurants */}
-          {showMarkers && (layerFilter === 'restaurants' || layerFilter === 'all') &&
-            restaurants.map((r) => (
-              <Marker
-                key={r.uuid}
-                longitude={r.location.coordinates[0]}
-                latitude={r.location.coordinates[1]}
-                anchor="center"
-                onClick={(e: MarkerEvent<MouseEvent>) => {
-                  e.originalEvent.stopPropagation();
-                  selectRestaurant(r);
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-                  <RestaurantMarkerSvg />
-                  <MarkerLabel>{r.name}</MarkerLabel>
-                </div>
-              </Marker>
-            ))}
-
-          {/* Events */}
-          {showMarkers && (layerFilter === 'events' || layerFilter === 'all') &&
-            events.map((ev) => (
-              <Marker
-                key={ev.uuid}
-                longitude={ev.location.coordinates[0]}
-                latitude={ev.location.coordinates[1]}
-                anchor="center"
-                onClick={(e: MarkerEvent<MouseEvent>) => {
-                  e.originalEvent.stopPropagation();
-                  selectEvent(ev);
-                }}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer' }}>
-                  <EventMarkerSvg />
-                  <MarkerLabel>{ev.title}</MarkerLabel>
-                </div>
-              </Marker>
-            ))}
+          <MapMarkersLayer
+            mapRef={mapRef}
+            mapLoaded={mapLoaded}
+            visible={showMarkers}
+            terrasen={terrasen}
+            restaurants={restaurants}
+            events={events}
+            layerFilter={layerFilter}
+            selectedUuid={selectedUuid}
+            onSelectTerras={selectTerras}
+            onSelectRestaurant={selectRestaurant}
+            onSelectEvent={selectEvent}
+          />
 
         </Map>
 
