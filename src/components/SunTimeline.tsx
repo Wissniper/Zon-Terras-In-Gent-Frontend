@@ -82,7 +82,13 @@ export default function SunTimeline({ orientation = 'horizontal' }: Props) {
 
   const trackGradient = useTrackGradient(anchorMs, orientation);
   const selectedMs = new Date(selectedTime).getTime();
-  const fraction = clamp((selectedMs - anchorMs) / SPAN_MS, 0, 1);
+  const baseFraction = clamp((selectedMs - anchorMs) / SPAN_MS, 0, 1);
+  // While dragging, the thumb is driven by `dragFraction` so the pointer feels
+  // glued to the cursor without committing to TimeContext on every snap —
+  // every commit invalidates downstream sun/leaderboard/search queries.
+  // We commit exactly once on pointer up.
+  const [dragFraction, setDragFraction] = useState<number | null>(null);
+  const fraction = dragFraction ?? baseFraction;
 
   // Auto-tick when the user is "live" — i.e. the selected time is within a
   // few minutes of real wall-clock time. Without this the displayed clock
@@ -124,14 +130,20 @@ export default function SunTimeline({ orientation = 'horizontal' }: Props) {
   const onPointerDown = (e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId);
     draggingRef.current = true; setDragging(true);
-    applyFraction(fractionFromEvent(e.clientX, e.clientY));
+    setDragFraction(fractionFromEvent(e.clientX, e.clientY));
   };
   const onPointerMove = (e: React.PointerEvent) => {
     if (!draggingRef.current) return;
-    applyFraction(fractionFromEvent(e.clientX, e.clientY));
+    setDragFraction(fractionFromEvent(e.clientX, e.clientY));
   };
   const onPointerUp = (e: React.PointerEvent) => {
+    if (draggingRef.current) {
+      // Commit the final position once — read fraction straight from the
+      // event so we don't depend on the latest setDragFraction having flushed.
+      applyFraction(fractionFromEvent(e.clientX, e.clientY));
+    }
     draggingRef.current = false; setDragging(false);
+    setDragFraction(null);
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
   };
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -168,10 +180,16 @@ export default function SunTimeline({ orientation = 'horizontal' }: Props) {
     });
   }, [anchorMs]);
 
-  const selectedDate = new Date(selectedMs);
-  const displayTime = selectedDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  // Headline mirrors the thumb: during drag it follows the pointer (snapped to
+  // STEP_MS) so the user sees the time they'll land on, then sticks to the
+  // committed value once they release.
+  const displayMs = dragFraction !== null
+    ? Math.round((anchorMs + dragFraction * SPAN_MS) / STEP_MS) * STEP_MS
+    : selectedMs;
+  const displayDate = new Date(displayMs);
+  const displayTime = displayDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   const dayDelta = Math.floor(
-    (new Date(selectedMs).setHours(0, 0, 0, 0) - new Date(anchorMs).setHours(0, 0, 0, 0)) / 86_400_000
+    (new Date(displayMs).setHours(0, 0, 0, 0) - new Date(anchorMs).setHours(0, 0, 0, 0)) / 86_400_000
   );
   const dayLabel = dayDelta === 0 ? 'Today' : dayDelta === 1 ? 'Tomorrow' : `+${dayDelta}d`;
 
