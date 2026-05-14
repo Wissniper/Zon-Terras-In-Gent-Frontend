@@ -6,6 +6,7 @@ import { searchRestaurants } from '../services/restaurantService';
 import { searchEvents } from '../services/eventService';
 import { useFilters } from '../contexts/FilterContext';
 import { useSelectedTime } from '../contexts/TimeContext';
+import { minuteIsoFrom } from '../services/intensitySource';
 import { intensityColor, intensityLabel } from '../utils/intensity';
 import Card from '../components/ui/Card';
 import Pill from '../components/ui/Pill';
@@ -216,14 +217,10 @@ export default function SearchPage() {
   const { query, setQuery, sunnyOnly, setSunnyOnly, minIntensity, setMinIntensity, cuisine, setCuisine } = useFilters();
   const { selectedTime } = useSelectedTime();
 
-  // Round to the minute so live ticks (every 30s) don't double-fetch.
-  // Sent to the backend as `?time=` so intensities match the time-aware
-  // map leaderboard rather than always being "now".
-  const timeKey = useMemo(() => {
-    const d = new Date(selectedTime);
-    d.setSeconds(0, 0);
-    return d.toISOString();
-  }, [selectedTime]);
+  // Canonical minute-rounded ISO key — shared with every other surface so
+  // the leaderboard / popup / detail / Discover row never disagree on the
+  // (id, time) pair.
+  const timeKey = useMemo(() => minuteIsoFrom(selectedTime), [selectedTime]);
 
   function handleQuery(v: string) { setQuery(v); setPage(0); }
 

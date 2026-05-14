@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { searchTerras } from '../services/terrasService';
 import { useSelectedTime } from '../contexts/TimeContext';
+import { minuteIsoFrom } from '../services/intensitySource';
 import type { Terras } from '../types';
 
 /**
@@ -9,20 +10,15 @@ import type { Terras } from '../types';
  *
  * Backend `/api/search/terrasen?time=` already returns shadow + cloud-aware
  * intensity sorted intensity:-1, so a single search call gives us the
- * leaderboard directly — no per-entity fan-out.
+ * leaderboard directly — no per-entity fan-out. Uses `minuteIsoFrom` for
+ * canonical time quantization so the keys match every other surface.
  */
 export function useSunniestTerrasen(limit: number = 5): {
   items: { terras: Terras; intensity: number }[];
   isLoading: boolean;
 } {
   const { selectedTime } = useSelectedTime();
-
-  // Round to the minute so the live tick (every 30s) doesn't double-fetch.
-  const minuteKey = useMemo(() => {
-    const d = new Date(selectedTime);
-    d.setSeconds(0, 0);
-    return d.toISOString();
-  }, [selectedTime]);
+  const minuteKey = useMemo(() => minuteIsoFrom(selectedTime), [selectedTime]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['sunniest-terrasen', limit, minuteKey],
