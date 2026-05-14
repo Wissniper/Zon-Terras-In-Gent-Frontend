@@ -1,14 +1,12 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getRestaurantById } from '../services/restaurantService';
-import { fetchSunForRestaurant } from '../services/sunService';
-import { useSelectedTime } from '../contexts/TimeContext';
+import { useEntityIntensity } from '../hooks/useEntityIntensity';
 import EntityDetail from '../components/EntityDetail';
 import type { DetailLink, DetailRow } from '../components/EntityDetail';
 
 export default function RestaurantDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { selectedTime } = useSelectedTime();
 
   const { data: restaurant, isLoading, isError } = useQuery({
     queryKey: ['restaurant', id],
@@ -16,13 +14,8 @@ export default function RestaurantDetailPage() {
     enabled: !!id,
   });
 
-  const { data: sunResponse } = useQuery({
-    queryKey: ['sun-restaurant', id, selectedTime],
-    queryFn: () => fetchSunForRestaurant(id!, selectedTime),
-    enabled: !!id,
-  });
-
-  const sun = sunResponse?.sunData;
+  const live = useEntityIntensity('restaurant', id ?? null);
+  const sun = live.data?.sun;
 
   const rows: DetailRow[] = [];
   if (restaurant?.phone)         rows.push({ label: 'Phone',    value: restaurant.phone, href: `tel:${restaurant.phone}` });
@@ -41,7 +34,7 @@ export default function RestaurantDetailPage() {
       title={restaurant?.name}
       address={restaurant?.address}
       category={restaurant?.cuisine ? { label: restaurant.cuisine, tone: 'sky' } : undefined}
-      intensity={restaurant?.intensity}
+      intensity={live.intensity}
       sun={sun ? {
         altitudeDeg: (sun.altitude * 180) / Math.PI,
         azimuthDeg:  (sun.azimuth  * 180) / Math.PI,

@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getEventById } from '../services/eventService';
+import { useEntityIntensity } from '../hooks/useEntityIntensity';
 import EntityDetail from '../components/EntityDetail';
 import type { DetailLink, DetailRow } from '../components/EntityDetail';
 
@@ -15,6 +16,8 @@ export default function EventDetailPage() {
     queryFn: () => getEventById(id!),
     enabled: !!id,
   });
+
+  const live = useEntityIntensity('event', id ?? null);
 
   const rows: DetailRow[] = [];
   if (event) {
@@ -56,7 +59,7 @@ export default function EventDetailPage() {
       address={event?.address}
       category={{ label: 'Event', tone: 'terra' }}
       description={event?.description ?? undefined}
-      intensity={event?.intensity ?? undefined}
+      intensity={live.intensity}
       rows={rows}
       mapState={id ? { focusId: id, type: 'event' } : undefined}
       links={links}
